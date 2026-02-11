@@ -97,7 +97,7 @@ export const calcolaMiglioreOfferta = async (leadId, consumiData) => {
     }
 
     // Calcola il risparmio per ogni offerta
-    const offerte CalcolateConRisparmio = offerte.map(offerta => {
+    const offerteCalcolateConRisparmio = offerte.map(offerta => {
       const spesaAttuale = consumiData.spesaMensile * 12;
       let spesaOfferta = 0;
 
