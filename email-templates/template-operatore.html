@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuova Pratica da Gestire</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table width="650" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 26px;">🔔 Nuova Pratica da Gestire</h1>
+                            <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 14px; opacity: 0.95;">Un nuovo cliente ha richiesto un'offerta</p>
+                        </td>
+                    </tr>
+
+                    <!-- Codice Pratica -->
+                    <tr>
+                        <td style="padding: 30px; background-color: #fff3cd; border-bottom: 3px solid #ffc107;">
+                            <table width="100%">
+                                <tr>
+                                    <td width="50%">
+                                        <div style="font-size: 12px; color: #856404; margin-bottom: 5px;">CODICE PRATICA</div>
+                                        <div style="font-size: 24px; font-weight: bold; color: #856404;">{{codice_pratica}}</div>
+                                    </td>
+                                    <td width="50%" align="right">
+                                        <div style="font-size: 12px; color: #856404; margin-bottom: 5px;">DATA E ORA</div>
+                                        <div style="font-size: 14px; font-weight: bold; color: #856404;">{{data_richiesta}} - {{ora_richiesta}}</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Dati Cliente -->
+                    <tr>
+                        <td style="padding: 30px;">
+                            <h2 style="margin: 0 0 20px 0; color: #333; font-size: 20px; border-bottom: 2px solid #dc3545; padding-bottom: 10px;">👤 Dati Cliente</h2>
+                            
+                            <table width="100%" cellpadding="10" style="border-collapse: collapse;">
+                                <tr>
+                                    <td width="35%" style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #666;">Nome Completo:</td>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; color: #333;">{{nome_completo}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #666;">Email:</td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6;"><a href="/cdn-cgi/l/email-protection#0f74746a626e6663506c63666a617b6a7272" style="color: #007bff; text-decoration: none;">{{email_cliente}}</a></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #666;">Telefono:</td>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;"><a href="tel:{{telefono_cliente}}" style="color: #007bff; text-decoration: none; font-weight: bold;">{{telefono_cliente}}</a></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #666;">Codice Fiscale:</td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6; font-family: monospace;">{{codice_fiscale}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; background-color: #f8f9fa; font-weight: bold; color: #666;">Indirizzo:</td>
+                                    <td style="padding: 10px; background-color: #f8f9fa;">{{indirizzo_completo}}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Dettagli Offerta -->
+                    <tr>
+                        <td style="padding: 0 30px 30px 30px;">
+                            <h2 style="margin: 0 0 20px 0; color: #333; font-size: 20px; border-bottom: 2px solid #dc3545; padding-bottom: 10px;">💡 Offerta Proposta</h2>
+                            
+                            <table width="100%" cellpadding="10" style="border-collapse: collapse;">
+                                <tr>
+                                    <td width="35%" style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #666;">Fornitore:</td>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; color: #333; font-weight: bold;">{{fornitore}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #666;">Nome Offerta:</td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6; color: #333;">{{nome_offerta}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #666;">Tipo Fornitura:</td>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">{{tipo_fornitura}}</td>
+                                </tr>
+                            </table>
+
+                            <!-- Risparmio -->
+                            <table width="100%" cellpadding="20" style="margin-top: 20px; background: linear-gradient(135deg, #28a745, #20c997); border-radius: 8px;">
+                                <tr>
+                                    <td align="center">
+                                        <div style="font-size: 16px; color: #ffffff; opacity: 0.9; margin-bottom: 10px;">💰 Risparmio Stimato Cliente</div>
+                                        <div style="font-size: 36px; font-weight: bold; color: #ffffff;">{{risparmio_annuo}}</div>
+                                        <div style="font-size: 14px; color: #ffffff; opacity: 0.9; margin-top: 5px;">all'anno ({{risparmio_percentuale}})</div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Commissione -->
+                            <table width="100%" cellpadding="20" style="margin-top: 15px; background-color: #d1ecf1; border-radius: 8px; border-left: 4px solid #17a2b8;">
+                                <tr>
+                                    <td>
+                                        <div style="font-size: 14px; color: #0c5460; margin-bottom: 5px;">💼 TUA COMMISSIONE PREVISTA</div>
+                                        <div style="font-size: 28px; font-weight: bold; color: #0c5460;">{{commissione_prevista}}</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Dati Tecnici -->
+                    <tr>
+                        <td style="padding: 0 30px 30px 30px;">
+                            <h2 style="margin: 0 0 20px 0; color: #333; font-size: 20px; border-bottom: 2px solid #dc3545; padding-bottom: 10px;">🔧 Dati Tecnici</h2>
+                            
+                            <table width="100%" cellpadding="10" style="border-collapse: collapse;">
+                                <tr>
+                                    <td width="35%" style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #666;">Codice POD:</td>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; font-family: monospace;">{{codice_pod}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #666;">Codice PDR:</td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6; font-family: monospace;">{{codice_pdr}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #666;">Fornitore Attuale:</td>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">{{fornitore_attuale}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #666;">Potenza:</td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6;">{{potenza_contrattuale}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #666;">Spesa Attuale:</td>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; font-weight: bold; color: #dc3545;">{{spesa_attuale}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; font-weight: bold; color: #666;">Spesa con Offerta:</td>
+                                    <td style="padding: 10px; font-weight: bold; color: #28a745;">{{spesa_nuova}}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Note Cliente -->
+                    <tr>
+                        <td style="padding: 0 30px 30px 30px;">
+                            <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">📝 Note del Cliente</h3>
+                            <div style="padding: 15px; background-color: #f8f9fa; border-radius: 8px; border-left: 3px solid #6c757d;">
+                                <p style="margin: 0; color: #555; font-size: 14px; line-height: 1.6;">{{note_cliente}}</p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Azioni -->
+                    <tr>
+                        <td align="center" style="padding: 0 30px 40px 30px;">
+                            <table cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="background-color: #dc3545; border-radius: 8px;">
+                                        <a href="{{link_pannello}}" style="display: inline-block; padding: 15px 40px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px;">
+                                            Gestisci Pratica nel Pannello →
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin: 20px 0 0 0; font-size: 13px; color: #666;">
+                                oppure contatta direttamente il cliente al numero <strong>{{telefono_cliente}}</strong>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- IDs Sistema -->
+                    <tr>
+                        <td style="padding: 0 30px 30px 30px;">
+                            <table width="100%" cellpadding="10" style="background-color: #f8f9fa; border-radius: 8px;">
+                                <tr>
+                                    <td>
+                                        <div style="font-size: 11px; color: #999; font-family: monospace;">
+                                            <strong>IDs Sistema (per supporto tecnico):</strong><br>
+                                            Lead ID: {{lead_id}}<br>
+                                            Pre-Contratto ID: {{pre_contratto_id}}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #343a40; padding: 20px 30px; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; color: #ffffff;">
+                                Sistema Comparatore Energia - Notifica Automatica<br>
+                                <span style="opacity: 0.7;">Questa email è stata generata automaticamente dal sistema</span>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+   
