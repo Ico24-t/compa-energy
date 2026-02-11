@@ -37,7 +37,7 @@ const Step6Conferma = ({ offerta, emailInviata, codiceRichiesta }) => {
             <div className="risparmio-grid">
               <div className="risparmio-item">
                 <div className="risparmio-amount">{formatCurrency(offerta.risparmioAnnuo)}</div>
-                <div className="risparmio-period">all'anno</div>
+                <div className="risparmio-period">all&apos;anno</div>
               </div>
               <div className="risparmio-item">
                 <div className="risparmio-amount">{formatCurrency(offerta.risparmioMensile)}</div>
@@ -60,8 +60,8 @@ const Step6Conferma = ({ offerta, emailInviata, codiceRichiesta }) => {
                 <h4>Email di conferma</h4>
                 <p>
                   {emailInviata 
-                    ? '✅ Ti abbiamo inviato un\'email con tutti i dettagli dell'offerta. Controlla la tua casella di posta (anche nello spam).'
-                    : '⏳ Riceverai a breve un'email con tutti i dettagli dell'offerta.'}
+                    ? "✅ Ti abbiamo inviato un&apos;email con tutti i dettagli dell&apos;offerta. Controlla la tua casella di posta (anche nello spam)."
+                    : "⏳ Riceverai a breve un&apos;email con tutti i dettagli dell&apos;offerta."}
                 </p>
               </div>
             </div>
@@ -78,7 +78,7 @@ const Step6Conferma = ({ offerta, emailInviata, codiceRichiesta }) => {
                 <ul>
                   <li>Verificare i dati inseriti</li>
                   <li>Rispondere a eventuali domande</li>
-                  <li>Confermare i dettagli dell'offerta</li>
+                  <li>Confermare i dettagli dell&apos;offerta</li>
                 </ul>
               </div>
             </div>
@@ -125,7 +125,7 @@ const Step6Conferma = ({ offerta, emailInviata, codiceRichiesta }) => {
             <span className="info-icon">📞</span>
             <h4>Contatti</h4>
             <p>
-              Se hai domande urgenti, puoi contattarci via email all'indirizzo che trovi nell'email di conferma.
+              Se hai domande urgenti, puoi contattarci via email all&apos;indirizzo che trovi nell&apos;email di conferma.
             </p>
           </div>
 
@@ -160,7 +160,7 @@ const Step6Conferma = ({ offerta, emailInviata, codiceRichiesta }) => {
           
           <div className="faq-list">
             <div className="faq-item">
-              <h4>Non ho ricevuto l'email, cosa faccio?</h4>
+              <h4>Non ho ricevuto l&apos;email, cosa faccio?</h4>
               <p>
                 Controlla la cartella spam/posta indesiderata. 
                 Se non la trovi, contattaci usando il codice richiesta fornito sopra.

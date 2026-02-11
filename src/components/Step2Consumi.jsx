@@ -20,7 +20,7 @@ const Step2Consumi = ({ onNext, onBack, initialData }) => {
     if (formData.spesaMensile && formData.tipoFornitura) {
       const stima = stimaConsumoAnnuo(parseFloat(formData.spesaMensile), formData.tipoFornitura);
       
-      if (formData.tipoFornitura === 'dual') {
+      if (formData.tipoFornitura === 'dual&apos;) {
         setFormData(prev => ({
           ...prev,
           consumoAnnuoKwh: prev.consumoAnnuoKwh || stima.kwh,
@@ -49,7 +49,7 @@ const Step2Consumi = ({ onNext, onBack, initialData }) => {
       [name]: type === 'checkbox' ? checked : value
     }));
     
-    // Rimuovi errore quando l'utente modifica
+    // Rimuovi errore quando l&apos;utente modifica
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -70,7 +70,7 @@ const Step2Consumi = ({ onNext, onBack, initialData }) => {
     <div className="step-container">
       <div className="step-header">
         <h2>I tuoi consumi</h2>
-        <p>Aiutaci a trovare l'offerta migliore per te</p>
+        <p>Aiutaci a trovare l&apos;offerta migliore per te</p>
       </div>
 
       <div className="step-content">
@@ -94,8 +94,8 @@ const Step2Consumi = ({ onNext, onBack, initialData }) => {
             </button>
             <button
               type="button"
-              className={`btn-toggle ${formData.tipoFornitura === 'dual' ? 'active' : ''}`}
-              onClick={() => handleChange({ target: { name: 'tipoFornitura', value: 'dual' }})}
+              className={`btn-toggle ${formData.tipoFornitura === 'dual&apos; ? 'active' : ''}`}
+              onClick={() => handleChange({ target: { name: 'tipoFornitura', value: 'dual&apos; }})}
             >
               💡 Luce + Gas
             </button>
@@ -104,7 +104,7 @@ const Step2Consumi = ({ onNext, onBack, initialData }) => {
         </div>
 
         {/* Potenza Contatore (solo per luce) */}
-        {(formData.tipoFornitura === 'luce' || formData.tipoFornitura === 'dual') && (
+        {(formData.tipoFornitura === 'luce' || formData.tipoFornitura === 'dual&apos;) && (
           <div className="form-group">
             <label className="step-label">Potenza contatore elettrico</label>
             <select 
@@ -151,7 +151,7 @@ const Step2Consumi = ({ onNext, onBack, initialData }) => {
           <div className="consumo-stimato-box">
             <p className="info-text">📊 Basandoci sulla tua spesa, stimiamo:</p>
             
-            {(formData.tipoFornitura === 'luce' || formData.tipoFornitura === 'dual') && (
+            {(formData.tipoFornitura === 'luce' || formData.tipoFornitura === 'dual&apos;) && (
               <div className="form-group-inline">
                 <label>Consumo annuo elettrico</label>
                 <div className="input-with-suffix">
@@ -167,7 +167,7 @@ const Step2Consumi = ({ onNext, onBack, initialData }) => {
               </div>
             )}
             
-            {(formData.tipoFornitura === 'gas' || formData.tipoFornitura === 'dual') && (
+            {(formData.tipoFornitura === 'gas' || formData.tipoFornitura === 'dual&apos;) && (
               <div className="form-group-inline">
                 <label>Consumo annuo gas</label>
                 <div className="input-with-suffix">
@@ -203,7 +203,7 @@ const Step2Consumi = ({ onNext, onBack, initialData }) => {
             required
           />
           {errors.email && <span className="error-text">{errors.email}</span>}
-          <p className="hint-text">Ti invieremo l'offerta personalizzata via email</p>
+          <p className="hint-text">Ti invieremo l&apos;offerta personalizzata via email</p>
         </div>
 
         {/* Marketing Consent */}

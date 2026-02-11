@@ -12,7 +12,7 @@ const Step4DettaglioOfferta = ({ onNext, onBack, offerta }) => {
     <div className="step-container">
       <div className="step-header">
         <h2>Ecco la tua offerta personalizzata</h2>
-        <p>Tutti i dettagli del fornitore e dell'offerta</p>
+        <p>Tutti i dettagli del fornitore e dell&apos;offerta</p>
       </div>
 
       <div className="step-content">
@@ -207,10 +207,10 @@ const Step4DettaglioOfferta = ({ onNext, onBack, offerta }) => {
         <div className="note-box">
           <h4>📌 Note importanti</h4>
           <ul>
-            <li>I prezzi indicati sono IVA esclusa. Verrà applicata l'IVA secondo la normativa vigente.</li>
-            <li>I consumi indicati sono stimati e potrebbero variare in base all'utilizzo effettivo.</li>
+            <li>I prezzi indicati sono IVA esclusa. Verrà applicata l&apos;IVA secondo la normativa vigente.</li>
+            <li>I consumi indicati sono stimati e potrebbero variare in base all&apos;utilizzo effettivo.</li>
             <li>Il risparmio è calcolato rispetto alla tua spesa attuale dichiarata.</li>
-            <li>Questa è un'offerta preliminare. Il contratto finale potrebbe contenere condizioni aggiornate.</li>
+            <li>Questa è un&apos;offerta preliminare. Il contratto finale potrebbe contenere condizioni aggiornate.</li>
           </ul>
         </div>
       </div>
@@ -220,7 +220,7 @@ const Step4DettaglioOfferta = ({ onNext, onBack, offerta }) => {
           Indietro
         </button>
         <button className="btn btn-primary btn-large" onClick={onNext}>
-          Prosegui con l'attivazione
+          Prosegui con l&apos;attivazione
         </button>
       </div>
     </div>

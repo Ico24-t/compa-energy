@@ -54,7 +54,7 @@ const Step5Anagrafica = ({ onNext, onBack, initialData, tipoFornitura }) => {
       [name]: finalValue
     }));
 
-    // Rimuovi errore quando l'utente modifica
+    // Rimuovi errore quando l&apos;utente modifica
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -249,7 +249,7 @@ const Step5Anagrafica = ({ onNext, onBack, initialData, tipoFornitura }) => {
         <div className="form-section">
           <h3 className="section-title">⚡ Dati fornitura attuale</h3>
           
-          {(tipoFornitura === 'luce' || tipoFornitura === 'dual') && (
+          {(tipoFornitura === 'luce' || tipoFornitura === 'dual&apos;) && (
             <div className="form-group">
               <label className="step-label">
                 Codice POD
@@ -268,7 +268,7 @@ const Step5Anagrafica = ({ onNext, onBack, initialData, tipoFornitura }) => {
             </div>
           )}
 
-          {(tipoFornitura === 'gas' || tipoFornitura === 'dual') && (
+          {(tipoFornitura === 'gas' || tipoFornitura === 'dual&apos;) && (
             <div className="form-group">
               <label className="step-label">
                 Codice PDR
@@ -347,10 +347,10 @@ const Step5Anagrafica = ({ onNext, onBack, initialData, tipoFornitura }) => {
                 onChange={handleChange}
               />
               <span>
-                <strong>Accetto l'informativa privacy</strong> <span className="label-required">*</span>
+                <strong>Accetto l&apos;informativa privacy</strong> <span className="label-required">*</span>
                 <br />
                 <small>
-                  Ho letto e accetto l'
+                  Ho letto e accetto l&apos;
                   <a href="/privacy" target="_blank" rel="noopener noreferrer"> informativa sulla privacy</a>
                   {' '}e il trattamento dei miei dati personali
                 </small>

@@ -38,7 +38,7 @@ const Step1TipoCliente = ({ onNext, initialData }) => {
     <div className="step-container">
       <div className="step-header">
         <h2>Benvenuto!</h2>
-        <p>Iniziamo trovando l'offerta perfetta per te</p>
+        <p>Iniziamo trovando l&apos;offerta perfetta per te</p>
       </div>
 
       <div className="step-content">

@@ -31,7 +31,7 @@ function App() {
   const [emailInviata, setEmailInviata] = useState(false);
   const [codiceRichiesta, setCodiceRichiesta] = useState('');
 
-  // Inizializza EmailJS all'avvio
+  // Inizializza EmailJS all&apos;avvio
   useEffect(() => {
     initEmailJS();
   }, []);
@@ -210,7 +210,7 @@ function App() {
         await confermaInvioPreContratto(preContrattoResult.data.id, leadId);
       } else {
         console.error('Errore invio email:', emailResult);
-        // Procedi comunque - l'email è secondaria
+        // Procedi comunque - l&apos;email è secondaria
       }
 
       setCurrentStep(6);
@@ -291,7 +291,7 @@ function App() {
       <header className="app-header">
         <div className="container">
           <h1 className="app-title">⚡ Comparatore Energia</h1>
-          <p className="app-subtitle">Trova l'offerta luce e gas perfetta per te</p>
+          <p className="app-subtitle">Trova l&apos;offerta luce e gas perfetta per te</p>
         </div>
       </header>
 

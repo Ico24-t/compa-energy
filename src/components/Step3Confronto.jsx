@@ -7,7 +7,7 @@ const Step3Confronto = ({ onNext, onBack, offerta, isMigliorativa, loading }) =>
   const [showTelefonoInput, setShowTelefonoInput] = useState(false);
 
   useEffect(() => {
-    // Se l'offerta non è migliorativa, mostra il messaggio e non richiedere telefono
+    // Se l&apos;offerta non è migliorativa, mostra il messaggio e non richiedere telefono
     if (!loading && !isMigliorativa) {
       setShowTelefonoInput(false);
     } else if (!loading && isMigliorativa) {
@@ -87,8 +87,8 @@ const Step3Confronto = ({ onNext, onBack, offerta, isMigliorativa, loading }) =>
           <div className="info-box">
             <h3>Ti avviseremo quando avremo qualcosa di meglio</h3>
             <p>
-              Monitoriamo costantemente il mercato dell'energia. 
-              Ti contatteremo via email non appena avremo un'offerta 
+              Monitoriamo costantemente il mercato dell&apos;energia. 
+              Ti contatteremo via email non appena avremo un&apos;offerta 
               che possa farti risparmiare rispetto alla tua situazione attuale.
             </p>
             <div className="features-list">
@@ -144,7 +144,7 @@ const Step3Confronto = ({ onNext, onBack, offerta, isMigliorativa, loading }) =>
             <div className="risparmio-amount">
               {formatCurrency(offerta.risparmioAnnuo)}
             </div>
-            <div className="risparmio-label">di risparmio all'anno</div>
+            <div className="risparmio-label">di risparmio all&apos;anno</div>
             <div className="risparmio-percentage">
               (-{offerta.risparmioPercentuale.toFixed(1)}% rispetto alla tua spesa attuale)
             </div>
@@ -174,7 +174,7 @@ const Step3Confronto = ({ onNext, onBack, offerta, isMigliorativa, loading }) =>
                   <div className="price-label">al mese</div>
                 </div>
                 <div className="price-annual">
-                  {formatCurrency(offerta.spesaAttuale)} all'anno
+                  {formatCurrency(offerta.spesaAttuale)} all&apos;anno
                 </div>
               </div>
             </div>
@@ -198,7 +198,7 @@ const Step3Confronto = ({ onNext, onBack, offerta, isMigliorativa, loading }) =>
                   <div className="price-label">al mese</div>
                 </div>
                 <div className="price-annual">
-                  {formatCurrency(offerta.spesaOfferta)} all'anno
+                  {formatCurrency(offerta.spesaOfferta)} all&apos;anno
                 </div>
               </div>
             </div>
@@ -253,7 +253,7 @@ const Step3Confronto = ({ onNext, onBack, offerta, isMigliorativa, loading }) =>
 
           {/* Vantaggi */}
           <div className="vantaggi-list">
-            <h4>Vantaggi dell'offerta</h4>
+            <h4>Vantaggi dell&apos;offerta</h4>
             {offerta.green_energy && (
               <div className="vantaggio-item">
                 <span className="check-icon">✓</span>
@@ -304,7 +304,7 @@ const Step3Confronto = ({ onNext, onBack, offerta, isMigliorativa, loading }) =>
                 <span className="label-required">*</span>
               </label>
               <p className="hint-text">
-                Ti contatteremo solo per confermare l'attivazione dell'offerta
+                Ti contatteremo solo per confermare l&apos;attivazione dell&apos;offerta
               </p>
               <input
                 type="tel"
