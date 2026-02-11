@@ -60,7 +60,7 @@ const Step6Conferma = ({ offerta, emailInviata, codiceRichiesta }) => {
                 <h4>Email di conferma</h4>
                 <p>
                   {emailInviata 
-                    ? '✅ Ti abbiamo inviato un'email con tutti i dettagli dell'offerta. Controlla la tua casella di posta (anche nello spam).'
+                    ? '✅ Ti abbiamo inviato un\'email con tutti i dettagli dell'offerta. Controlla la tua casella di posta (anche nello spam).'
                     : '⏳ Riceverai a breve un'email con tutti i dettagli dell'offerta.'}
                 </p>
               </div>
