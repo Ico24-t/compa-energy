@@ -193,30 +193,25 @@ function App() {
         telefono: formData.telefono
       };
 
-      // Invia email e ASPETTA che finiscano
-const emailResult = await inviaEmailComplete(
-  datiCompleti,
-  offerta,
-  preContrattoResult.data,
-  leadId
-);
+      // Invia email
+      const emailResult = await inviaEmailComplete(
+        datiCompleti,
+        offerta,
+        preContrattoResult.data,
+        leadId
+      );
 
-if (emailResult.success) {
-  setEmailInviata(true);
-  
-  // Conferma invio nel database
-  await confermaInvioPreContratto(preContrattoResult.data.id, leadId);
-} else {
-  console.error('Errore invio email:', emailResult);
-  // Anche se fallisce, prosegui
-  setEmailInviata(false);
-}
+      if (emailResult.success) {
+        setEmailInviata(true);
+        
+        // Conferma invio nel database
+        await confermaInvioPreContratto(preContrattoResult.data.id, leadId);
+      } else {
+        console.error('Errore invio email:', emailResult);
+        // Procedi comunque - l&apos;email è secondaria
+      }
 
-// IMPORTANTE: Aspetta un attimo prima di cambiare step
-// per dare tempo alle richieste di completarsi
-await new Promise(resolve => setTimeout(resolve, 500));
-
-setCurrentStep(6);
+      setCurrentStep(6);
     } catch (error) {
       console.error('Errore step 5:', error);
       alert('Si è verificato un errore. Riprova.');
