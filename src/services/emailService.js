@@ -10,13 +10,7 @@ const PUBLIC_KEY = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
  */
 export const initEmailJS = () => {
   if (PUBLIC_KEY) {
-    emailjs.init({
-      publicKey: PUBLIC_KEY,
-      blockHeadless: false, // Permetti anche da mobile webview
-      limitRate: {
-        throttle: 10000 // Max 1 email ogni 10 secondi
-      }
-    });
+    emailjs.init(PUBLIC_KEY);
   } else {
     console.error('EmailJS Public Key mancante!');
   }
@@ -27,32 +21,24 @@ export const initEmailJS = () => {
  */
 export const inviaEmailCliente = async (datiCliente, offerta, preContratto) => {
   try {
-    console.log('[EMAIL DEBUG] Preparazione email cliente...');
-    console.log('[EMAIL DEBUG] Dati offerta:', offerta);
-    
-    // Controlli di sicurezza
-    if (!offerta || !datiCliente || !preContratto) {
-      throw new Error('Dati mancanti per invio email');
-    }
-    
     const templateParams = {
       to_email: datiCliente.email,
       to_name: `${datiCliente.nome} ${datiCliente.cognome}`,
       
-      // Dati offerta (con fallback sicuri)
-      fornitore_nome: offerta.fornitori?.nome || 'Non disponibile',
-      nome_offerta: offerta.nome_offerta || '',
+      // Dati offerta
+      fornitore_nome: offerta.fornitori.nome,
+      nome_offerta: offerta.nome_offerta,
       tipo_fornitura: formatTipoFornitura(offerta.tipo_fornitura),
       
       // Risparmio
-      risparmio_annuo: formatCurrency(offerta.risparmioAnnuo || 0),
-      risparmio_mensile: formatCurrency(offerta.risparmioMensile || 0),
-      risparmio_percentuale: (offerta.risparmioPercentuale || 0).toFixed(1),
+      risparmio_annuo: formatCurrency(offerta.risparmioAnnuo),
+      risparmio_mensile: formatCurrency(offerta.risparmioMensile),
+      risparmio_percentuale: offerta.risparmioPercentuale.toFixed(1),
       
       // Prezzi
-      spesa_attuale_annua: formatCurrency(offerta.spesaAttuale || 0),
-      spesa_nuova_annua: formatCurrency(offerta.spesaOfferta || 0),
-      spesa_nuova_mensile: formatCurrency((offerta.spesaOfferta || 0) / 12),
+      spesa_attuale_annua: formatCurrency(offerta.spesaAttuale),
+      spesa_nuova_annua: formatCurrency(offerta.spesaOfferta),
+      spesa_nuova_mensile: formatCurrency(offerta.spesaOfferta / 12),
       
       // Dettagli tecnici
       prezzo_kwh: offerta.prezzo_kwh ? offerta.prezzo_kwh.toFixed(6) + ' €/kWh' : 'N/A',
@@ -68,29 +54,25 @@ export const inviaEmailCliente = async (datiCliente, offerta, preContratto) => {
       
       // Dati cliente
       codice_pratica: preContratto.id.substring(0, 8).toUpperCase(),
-      indirizzo_fornitura: datiCliente.indirizzoFornitura || '',
-      citta: `${datiCliente.cap || ''} ${datiCliente.citta || ''} (${datiCliente.provincia || ''})`,
+      indirizzo_fornitura: datiCliente.indirizzoFornitura,
+      citta: `${datiCliente.cap} ${datiCliente.citta} (${datiCliente.provincia})`,
       
       // Footer
       data_richiesta: new Date().toLocaleDateString('it-IT'),
       anno_corrente: new Date().getFullYear()
     };
 
-    console.log('[EMAIL DEBUG] Invio email cliente con SERVICE_ID:', SERVICE_ID);
-    console.log('[EMAIL DEBUG] Template ID:', TEMPLATE_CLIENT);
-    
     const response = await emailjs.send(
       SERVICE_ID,
       TEMPLATE_CLIENT,
       templateParams
     );
 
-    console.log('[EMAIL DEBUG] Email cliente inviata con successo:', response);
+    console.log('Email cliente inviata:', response);
     return { success: true, response };
   } catch (error) {
-    console.error('[EMAIL DEBUG] Errore invio email cliente:', error);
-    console.error('[EMAIL DEBUG] Dettagli errore:', error.text || error.message);
-    return { success: false, error: error.message || error.text };
+    console.error('Errore invio email cliente:', error);
+    return { success: false, error: error.message };
   }
 };
 
@@ -99,16 +81,8 @@ export const inviaEmailCliente = async (datiCliente, offerta, preContratto) => {
  */
 export const inviaEmailOperatore = async (datiCliente, offerta, preContratto, leadId) => {
   try {
-    console.log('[EMAIL DEBUG] Preparazione email operatore...');
-    console.log('[EMAIL DEBUG] Dati offerta:', offerta);
-    
-    // Controlli di sicurezza
-    if (!offerta || !datiCliente || !preContratto) {
-      throw new Error('Dati mancanti per invio email operatore');
-    }
-    
     const templateParams = {
-      to_email: offerta.fornitori?.email_operatore || 'info@example.com',
+      to_email: offerta.fornitori.email_operatore,
       
       // Intestazione
       codice_pratica: preContratto.id.substring(0, 8).toUpperCase(),
@@ -116,17 +90,17 @@ export const inviaEmailOperatore = async (datiCliente, offerta, preContratto, le
       ora_richiesta: new Date().toLocaleTimeString('it-IT'),
       
       // Dati cliente
-      nome_completo: `${datiCliente.nome || ''} ${datiCliente.cognome || ''}`,
-      email_cliente: datiCliente.email || '',
+      nome_completo: `${datiCliente.nome} ${datiCliente.cognome}`,
+      email_cliente: datiCliente.email,
       telefono_cliente: datiCliente.telefono || 'Non fornito',
-      codice_fiscale: datiCliente.codiceFiscale || '',
+      codice_fiscale: datiCliente.codiceFiscale,
       
       // Indirizzo fornitura
-      indirizzo_completo: `${datiCliente.indirizzoFornitura || ''}, ${datiCliente.cap || ''} ${datiCliente.citta || ''} (${datiCliente.provincia || ''})`,
+      indirizzo_completo: `${datiCliente.indirizzoFornitura}, ${datiCliente.cap} ${datiCliente.citta} (${datiCliente.provincia})`,
       
       // Offerta
-      fornitore: offerta.fornitori?.nome || 'Non disponibile',
-      nome_offerta: offerta.nome_offerta || '',
+      fornitore: offerta.fornitori.nome,
+      nome_offerta: offerta.nome_offerta,
       tipo_fornitura: formatTipoFornitura(offerta.tipo_fornitura),
       
       // Dati tecnici
@@ -136,13 +110,13 @@ export const inviaEmailOperatore = async (datiCliente, offerta, preContratto, le
       potenza_contrattuale: offerta.potenza_contrattuale ? `${offerta.potenza_contrattuale} kW` : 'N/A',
       
       // Risparmio
-      risparmio_annuo: formatCurrency(offerta.risparmioAnnuo || 0),
-      risparmio_percentuale: (offerta.risparmioPercentuale || 0).toFixed(1) + '%',
-      spesa_attuale: formatCurrency(offerta.spesaAttuale || 0),
-      spesa_nuova: formatCurrency(offerta.spesaOfferta || 0),
+      risparmio_annuo: formatCurrency(offerta.risparmioAnnuo),
+      risparmio_percentuale: offerta.risparmioPercentuale.toFixed(1) + '%',
+      spesa_attuale: formatCurrency(offerta.spesaAttuale),
+      spesa_nuova: formatCurrency(offerta.spesaOfferta),
       
       // Commissione (visibile solo internamente)
-      commissione_prevista: formatCurrency(offerta.commissione || 0),
+      commissione_prevista: formatCurrency(offerta.commissione),
       
       // Link gestione (da configurare)
       link_pannello: `https://tuodominio.com/admin/leads/${leadId}`,
@@ -178,18 +152,11 @@ export const inviaEmailComplete = async (datiCliente, offerta, preContratto, lea
     operatore: { success: false }
   };
 
-  try {
-    // Invia email cliente
-    risultati.cliente = await inviaEmailCliente(datiCliente, offerta, preContratto);
-    
-    // Piccolo delay per evitare problemi su connessioni lente (mobile)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Invia email operatore
-    risultati.operatore = await inviaEmailOperatore(datiCliente, offerta, preContratto, leadId);
-  } catch (error) {
-    console.error('Errore generale invio email:', error);
-  }
+  // Invia email cliente
+  risultati.cliente = await inviaEmailCliente(datiCliente, offerta, preContratto);
+  
+  // Invia email operatore
+  risultati.operatore = await inviaEmailOperatore(datiCliente, offerta, preContratto, leadId);
 
   const tutteInviate = risultati.cliente.success && risultati.operatore.success;
 
