@@ -10,7 +10,13 @@ const PUBLIC_KEY = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
  */
 export const initEmailJS = () => {
   if (PUBLIC_KEY) {
-    emailjs.init(PUBLIC_KEY);
+    emailjs.init({
+      publicKey: PUBLIC_KEY,
+      blockHeadless: false,
+      limitRate: {
+        throttle: 10000
+      }
+    });
   } else {
     console.error('EmailJS Public Key mancante!');
   }
