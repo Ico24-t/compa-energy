@@ -158,11 +158,18 @@ export const inviaEmailComplete = async (datiCliente, offerta, preContratto, lea
     operatore: { success: false }
   };
 
-  // Invia email cliente
-  risultati.cliente = await inviaEmailCliente(datiCliente, offerta, preContratto);
-  
-  // Invia email operatore
-  risultati.operatore = await inviaEmailOperatore(datiCliente, offerta, preContratto, leadId);
+  try {
+    // Invia email cliente
+    risultati.cliente = await inviaEmailCliente(datiCliente, offerta, preContratto);
+    
+    // Aspetta 2 secondi prima della seconda email
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Invia email operatore
+    risultati.operatore = await inviaEmailOperatore(datiCliente, offerta, preContratto, leadId);
+  } catch (error) {
+    console.error('Errore generale invio email:', error);
+  }
 
   const tutteInviate = risultati.cliente.success && risultati.operatore.success;
 
