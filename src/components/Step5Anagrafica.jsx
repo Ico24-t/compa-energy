@@ -79,10 +79,8 @@ const Step5Anagrafica = ({ onNext, onBack, initialData, tipoFornitura }) => {
       return;
     }
 
-    // IMPORTANTE: NON fare setIsSubmitting(false) qui!
-    // Lascia il loading attivo fino al cambio step
-    // altrimenti il re-render può interrompere l'invio email su mobile
     await onNext(formData);
+    setIsSubmitting(false);
   };
 
   return (
