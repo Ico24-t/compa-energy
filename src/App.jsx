@@ -179,11 +179,13 @@ function App() {
       });
 
       if (!preContrattoResult.success) {
+        console.error('[DEBUG] Errore salvataggio pre-contratto:', preContrattoResult.error);
         alert('Errore nel salvataggio dei dati. Riprova.');
         setLoading(false);
         return;
       }
 
+      console.log('[DEBUG] Pre-contratto salvato con successo:', preContrattoResult.data.id);
       setCodiceRichiesta(preContrattoResult.data.id.substring(0, 8).toUpperCase());
 
       // Prepara dati per email
@@ -193,6 +195,17 @@ function App() {
         telefono: formData.telefono
       };
 
+      console.log('[DEBUG] Tentativo invio email...');
+      
+      // IMPORTANTE: Ri-inizializza EmailJS prima dell'invio
+      // Su mobile il browser può "sospendere" la connessione EmailJS
+      // Ri-inizializzandolo qui garantiamo che sia sempre attivo
+      console.log('[DEBUG] Re-init EmailJS per mobile...');
+      initEmailJS();
+      
+      // Piccolo delay per dare tempo all'inizializzazione
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Invia email
       const emailResult = await inviaEmailComplete(
         datiCompleti,
@@ -201,14 +214,19 @@ function App() {
         leadId
       );
 
+      console.log('[DEBUG] Risultato invio email:', emailResult);
+
       if (emailResult.success) {
+        console.log('[DEBUG] Email inviate con successo!');
         setEmailInviata(true);
         
         // Conferma invio nel database
         await confermaInvioPreContratto(preContrattoResult.data.id, leadId);
       } else {
-        console.error('Errore invio email:', emailResult);
-        // Procedi comunque - l&apos;email è secondaria
+        console.error('[DEBUG] Errore invio email:', emailResult);
+        // Procedi comunque - l'email è secondaria
+        setEmailInviata(false);
+        console.warn('[DEBUG] Pratica salvata ma email non inviate');
       }
 
       setCurrentStep(6);
