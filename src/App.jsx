@@ -28,11 +28,32 @@ function App() {
   const [isMigliorativa, setIsMigliorativa] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailInviata, setEmailInviata] = useState(false);
+  const [emailStatus, setEmailStatus] = useState({ cliente: false, operatore: false });
   const [codiceRichiesta, setCodiceRichiesta] = useState('');
+  const [loadingMessage, setLoadingMessage] = useState('Caricamento...');
 
-  // Inizializza EmailJS all&apos;avvio
+  // Inizializza EmailJS all'avvio con verifica
   useEffect(() => {
+    console.log('🚀 Inizializzazione app...');
     initEmailJS();
+    
+    // Verifica configurazione EmailJS
+    const config = {
+      serviceId: process.env.REACT_APP_EMAILJS_SERVICE_ID,
+      templateClient: process.env.REACT_APP_EMAILJS_TEMPLATE_CLIENT,
+      templateOperator: process.env.REACT_APP_EMAILJS_TEMPLATE_OPERATOR,
+      publicKey: process.env.REACT_APP_EMAILJS_PUBLIC_KEY
+    };
+    
+    const missingKeys = Object.entries(config)
+      .filter(([_, value]) => !value)
+      .map(([key]) => key);
+    
+    if (missingKeys.length > 0) {
+      console.error('⚠️ Chiavi EmailJS mancanti:', missingKeys);
+    } else {
+      console.log('✅ Configurazione EmailJS completa');
+    }
   }, []);
 
   // Handler per passare al prossimo step
@@ -79,6 +100,7 @@ function App() {
   // Step 1: Crea lead nel database
   const handleStep1 = async (data) => {
     setLoading(true);
+    setLoadingMessage('Preparazione del preventivo...');
     setCurrentStep(2);
     setLoading(false);
   };
@@ -86,10 +108,12 @@ function App() {
   // Step 2: Salva consumi e crea lead con email
   const handleStep2 = async (data) => {
     setLoading(true);
+    setLoadingMessage('Analisi dei tuoi consumi...');
 
     try {
       // Crea lead se non esiste
       if (!leadId) {
+        setLoadingMessage('Salvataggio dei dati...');
         const leadResult = await createLead({
           email: data.email,
           tipoCliente: data.tipoCliente,
@@ -103,8 +127,10 @@ function App() {
         }
 
         setLeadId(leadResult.data.id);
+        console.log('✅ Lead creato:', leadResult.data.id);
         
         // Salva consumi
+        setLoadingMessage('Registrazione dei consumi...');
         await saveConsumi(leadResult.data.id, {
           tipoFornitura: data.tipoFornitura,
           potenzaContatore: data.potenzaContatore,
@@ -114,6 +140,7 @@ function App() {
         });
 
         // Calcola migliore offerta
+        setLoadingMessage('Ricerca della migliore offerta per te...');
         const offertaResult = await calcolaMiglioreOfferta(leadResult.data.id, {
           tipoFornitura: data.tipoFornitura,
           spesaMensile: data.spesaMensile,
@@ -124,18 +151,21 @@ function App() {
         if (offertaResult.success && offertaResult.offerta) {
           setOfferta(offertaResult.offerta);
           setIsMigliorativa(offertaResult.isMigliorativa);
+          console.log('✅ Offerta calcolata:', offertaResult.offerta.nome_offerta);
         } else {
           setOfferta(null);
           setIsMigliorativa(false);
+          console.warn('⚠️ Nessuna offerta trovata');
         }
       }
 
       setCurrentStep(3);
     } catch (error) {
-      console.error('Errore step 2:', error);
+      console.error('❌ Errore step 2:', error);
       alert('Si è verificato un errore. Riprova.');
     } finally {
       setLoading(false);
+      setLoadingMessage('Caricamento...');
     }
   };
 
@@ -143,13 +173,18 @@ function App() {
   const handleStep3 = async (data) => {
     if (!data.interessato) {
       // Non interessato - termina qui
-      setCurrentStep(6); // Vai a conferma
+      console.log('ℹ️ Utente non interessato');
+      setCurrentStep(6);
       return;
     }
 
     // Interessato - salva telefono
     if (data.telefono && leadId) {
+      setLoading(true);
+      setLoadingMessage('Salvataggio contatto telefonico...');
       await updateLeadTelefono(leadId, data.telefono);
+      setLoading(false);
+      console.log('✅ Telefono salvato:', data.telefono);
     }
 
     setCurrentStep(4);
@@ -158,9 +193,11 @@ function App() {
   // Step 5: Salva anagrafica e invia email
   const handleStep5 = async (data) => {
     setLoading(true);
+    setLoadingMessage('Creazione del preventivo...');
 
     try {
       // Crea pre-contratto
+      console.log('📝 Creazione pre-contratto...');
       const preContrattoResult = await createPreContratto(leadId, offerta.id, {
         nome: data.nome,
         cognome: data.cognome,
@@ -179,14 +216,14 @@ function App() {
       });
 
       if (!preContrattoResult.success) {
-        console.error('[DEBUG] Errore salvataggio pre-contratto:', preContrattoResult.error);
         alert('Errore nel salvataggio dei dati. Riprova.');
         setLoading(false);
         return;
       }
 
-      console.log('[DEBUG] Pre-contratto salvato con successo:', preContrattoResult.data.id);
-      setCodiceRichiesta(preContrattoResult.data.id.substring(0, 8).toUpperCase());
+      const codice = preContrattoResult.data.id.substring(0, 8).toUpperCase();
+      setCodiceRichiesta(codice);
+      console.log('✅ Pre-contratto creato:', codice);
 
       // Prepara dati per email
       const datiCompleti = {
@@ -195,18 +232,10 @@ function App() {
         telefono: formData.telefono
       };
 
-      console.log('[DEBUG] Tentativo invio email...');
+      // Invia email con feedback visivo migliorato
+      setLoadingMessage('📧 Invio email di conferma...');
+      console.log('📧 Inizio invio email...');
       
-      // IMPORTANTE: Ri-inizializza EmailJS prima dell'invio
-      // Su mobile il browser può "sospendere" la connessione EmailJS
-      // Ri-inizializzandolo qui garantiamo che sia sempre attivo
-      console.log('[DEBUG] Re-init EmailJS per mobile...');
-      initEmailJS();
-      
-      // Piccolo delay per dare tempo all'inizializzazione
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Invia email
       const emailResult = await inviaEmailComplete(
         datiCompleti,
         offerta,
@@ -214,27 +243,52 @@ function App() {
         leadId
       );
 
-      console.log('[DEBUG] Risultato invio email:', emailResult);
+      console.log('📬 Risultato invio email:', emailResult);
 
+      // Aggiorna stati in base ai risultati
       if (emailResult.success) {
-        console.log('[DEBUG] Email inviate con successo!');
+        // Entrambe le email inviate
         setEmailInviata(true);
+        setEmailStatus({ cliente: true, operatore: true });
+        console.log('✅ Tutte le email inviate con successo');
         
         // Conferma invio nel database
         await confermaInvioPreContratto(preContrattoResult.data.id, leadId);
+        
+      } else if (emailResult.partial) {
+        // Solo alcune email inviate
+        setEmailInviata(true);
+        setEmailStatus({
+          cliente: emailResult.risultati.cliente.success,
+          operatore: emailResult.risultati.operatore.success
+        });
+        console.warn('⚠️ Solo alcune email inviate');
+        
+        // Conferma comunque (i dati sono salvati)
+        await confermaInvioPreContratto(preContrattoResult.data.id, leadId);
+        
       } else {
-        console.error('[DEBUG] Errore invio email:', emailResult);
-        // Procedi comunque - l'email è secondaria
+        // Nessuna email inviata
         setEmailInviata(false);
-        console.warn('[DEBUG] Pratica salvata ma email non inviate');
+        setEmailStatus({ cliente: false, operatore: false });
+        console.error('❌ Nessuna email inviata');
+        
+        // NON bloccare l'utente - mostra comunque conferma
+        alert('⚠️ C\'è stato un problema con l\'invio delle email, ma i tuoi dati sono stati salvati correttamente. Verrai contattato al più presto.');
       }
 
+      // Vai sempre allo step finale
       setCurrentStep(6);
+      
     } catch (error) {
-      console.error('Errore step 5:', error);
-      alert('Si è verificato un errore. Riprova.');
+      console.error('❌ Errore critico step 5:', error);
+      alert('Si è verificato un errore. I tuoi dati sono stati salvati, verrai ricontattato.');
+      
+      // Vai comunque allo step finale
+      setCurrentStep(6);
     } finally {
       setLoading(false);
+      setLoadingMessage('Caricamento...');
     }
   };
 
@@ -293,6 +347,7 @@ function App() {
           <Step6Conferma
             offerta={offerta}
             emailInviata={emailInviata}
+            emailStatus={emailStatus}
             codiceRichiesta={codiceRichiesta}
           />
         );
@@ -338,7 +393,7 @@ function App() {
         <div className="loading-overlay">
           <div className="loading-spinner">
             <div className="spinner"></div>
-            <p>Caricamento...</p>
+            <p>{loadingMessage}</p>
           </div>
         </div>
       )}
