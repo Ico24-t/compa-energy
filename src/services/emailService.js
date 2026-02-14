@@ -5,20 +5,79 @@ const TEMPLATE_CLIENT = process.env.REACT_APP_EMAILJS_TEMPLATE_CLIENT;
 const TEMPLATE_OPERATOR = process.env.REACT_APP_EMAILJS_TEMPLATE_OPERATOR;
 const PUBLIC_KEY = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
 
+// Configurazione retry
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 2000; // 2 secondi
+const TIMEOUT = 30000; // 30 secondi timeout
+
 /**
- * Inizializza EmailJS
+ * Inizializza EmailJS con configurazione ottimizzata per mobile
  */
 export const initEmailJS = () => {
   if (PUBLIC_KEY) {
     emailjs.init({
       publicKey: PUBLIC_KEY,
-      blockHeadless: false, // Permetti anche da mobile webview
+      blockHeadless: true,
       limitRate: {
-        throttle: 10000 // Max 1 email ogni 10 secondi
+        throttle: 10000, // 10 secondi tra richieste
       }
     });
+    console.log('✅ EmailJS inizializzato correttamente');
   } else {
-    console.error('EmailJS Public Key mancante!');
+    console.error('❌ EmailJS Public Key mancante!');
+  }
+};
+
+/**
+ * Utility: Sleep function per retry
+ */
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Utility: Verifica connessione internet
+ */
+const checkInternetConnection = () => {
+  return navigator.onLine;
+};
+
+/**
+ * Wrapper per invio email con timeout e retry
+ */
+const sendEmailWithRetry = async (serviceId, templateId, templateParams, retries = MAX_RETRIES) => {
+  // Verifica connessione
+  if (!checkInternetConnection()) {
+    throw new Error('Nessuna connessione internet. Controlla la tua rete.');
+  }
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`📧 Tentativo ${attempt}/${retries} invio email...`);
+      
+      // Crea promise con timeout
+      const emailPromise = emailjs.send(serviceId, templateId, templateParams);
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout: email non inviata entro 30 secondi')), TIMEOUT);
+      });
+
+      // Race tra invio email e timeout
+      const response = await Promise.race([emailPromise, timeoutPromise]);
+      
+      console.log(`✅ Email inviata con successo! Status: ${response.status}`);
+      return { success: true, response, attempt };
+
+    } catch (error) {
+      console.error(`❌ Tentativo ${attempt} fallito:`, error.message);
+      
+      // Se è l'ultimo tentativo, lancia l'errore
+      if (attempt === retries) {
+        throw new Error(`Impossibile inviare email dopo ${retries} tentativi: ${error.message}`);
+      }
+      
+      // Altrimenti aspetta prima del prossimo tentativo
+      console.log(`⏳ Attendo ${RETRY_DELAY / 1000}s prima del prossimo tentativo...`);
+      await sleep(RETRY_DELAY * attempt); // Backoff esponenziale
+    }
   }
 };
 
@@ -27,21 +86,23 @@ export const initEmailJS = () => {
  */
 export const inviaEmailCliente = async (datiCliente, offerta, preContratto) => {
   try {
-    console.log('[EMAIL DEBUG] Preparazione email cliente...');
-    console.log('[EMAIL DEBUG] Dati offerta:', offerta);
-    
-    // Controlli di sicurezza
-    if (!offerta || !datiCliente || !preContratto) {
-      throw new Error('Dati mancanti per invio email');
+    // Validazione parametri
+    if (!datiCliente?.email) {
+      throw new Error('Email cliente mancante');
     }
-    
+    if (!SERVICE_ID || !TEMPLATE_CLIENT) {
+      throw new Error('Configurazione EmailJS incompleta (SERVICE_ID o TEMPLATE_CLIENT)');
+    }
+
+    console.log('📨 Preparazione email cliente per:', datiCliente.email);
+
     const templateParams = {
       to_email: datiCliente.email,
       to_name: `${datiCliente.nome} ${datiCliente.cognome}`,
       
-      // Dati offerta (con fallback sicuri)
-      fornitore_nome: offerta.fornitori?.nome || 'Non disponibile',
-      nome_offerta: offerta.nome_offerta || '',
+      // Dati offerta
+      fornitore_nome: offerta.fornitori?.nome || 'N/A',
+      nome_offerta: offerta.nome_offerta || 'N/A',
       tipo_fornitura: formatTipoFornitura(offerta.tipo_fornitura),
       
       // Risparmio
@@ -67,8 +128,8 @@ export const inviaEmailCliente = async (datiCliente, offerta, preContratto) => {
       bonus_attivazione: offerta.bonus_attivazione ? formatCurrency(offerta.bonus_attivazione) : 'Nessuno',
       
       // Dati cliente
-      codice_pratica: preContratto.id.substring(0, 8).toUpperCase(),
-      indirizzo_fornitura: datiCliente.indirizzoFornitura || '',
+      codice_pratica: preContratto?.id ? preContratto.id.substring(0, 8).toUpperCase() : 'N/A',
+      indirizzo_fornitura: datiCliente.indirizzoFornitura || 'N/A',
       citta: `${datiCliente.cap || ''} ${datiCliente.citta || ''} (${datiCliente.provincia || ''})`,
       
       // Footer
@@ -76,21 +137,22 @@ export const inviaEmailCliente = async (datiCliente, offerta, preContratto) => {
       anno_corrente: new Date().getFullYear()
     };
 
-    console.log('[EMAIL DEBUG] Invio email cliente con SERVICE_ID:', SERVICE_ID);
-    console.log('[EMAIL DEBUG] Template ID:', TEMPLATE_CLIENT);
+    const result = await sendEmailWithRetry(SERVICE_ID, TEMPLATE_CLIENT, templateParams);
     
-    const response = await emailjs.send(
-      SERVICE_ID,
-      TEMPLATE_CLIENT,
-      templateParams
-    );
+    return { 
+      success: true, 
+      response: result.response, 
+      message: 'Email cliente inviata con successo',
+      attempts: result.attempt 
+    };
 
-    console.log('[EMAIL DEBUG] Email cliente inviata con successo:', response);
-    return { success: true, response };
   } catch (error) {
-    console.error('[EMAIL DEBUG] Errore invio email cliente:', error);
-    console.error('[EMAIL DEBUG] Dettagli errore:', error.text || error.message);
-    return { success: false, error: error.message || error.text };
+    console.error('❌ Errore critico invio email cliente:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      code: 'EMAIL_CLIENT_FAILED'
+    };
   }
 };
 
@@ -99,34 +161,36 @@ export const inviaEmailCliente = async (datiCliente, offerta, preContratto) => {
  */
 export const inviaEmailOperatore = async (datiCliente, offerta, preContratto, leadId) => {
   try {
-    console.log('[EMAIL DEBUG] Preparazione email operatore...');
-    console.log('[EMAIL DEBUG] Dati offerta:', offerta);
-    
-    // Controlli di sicurezza
-    if (!offerta || !datiCliente || !preContratto) {
-      throw new Error('Dati mancanti per invio email operatore');
+    // Validazione parametri
+    if (!offerta?.fornitori?.email_operatore) {
+      throw new Error('Email operatore mancante');
     }
-    
+    if (!SERVICE_ID || !TEMPLATE_OPERATOR) {
+      throw new Error('Configurazione EmailJS incompleta (SERVICE_ID o TEMPLATE_OPERATOR)');
+    }
+
+    console.log('📨 Preparazione email operatore per:', offerta.fornitori.email_operatore);
+
     const templateParams = {
-      to_email: offerta.fornitori?.email_operatore || 'info@example.com',
+      to_email: offerta.fornitori.email_operatore,
       
       // Intestazione
-      codice_pratica: preContratto.id.substring(0, 8).toUpperCase(),
+      codice_pratica: preContratto?.id ? preContratto.id.substring(0, 8).toUpperCase() : 'N/A',
       data_richiesta: new Date().toLocaleDateString('it-IT'),
       ora_richiesta: new Date().toLocaleTimeString('it-IT'),
       
       // Dati cliente
       nome_completo: `${datiCliente.nome || ''} ${datiCliente.cognome || ''}`,
-      email_cliente: datiCliente.email || '',
+      email_cliente: datiCliente.email || 'N/A',
       telefono_cliente: datiCliente.telefono || 'Non fornito',
-      codice_fiscale: datiCliente.codiceFiscale || '',
+      codice_fiscale: datiCliente.codiceFiscale || 'N/A',
       
       // Indirizzo fornitura
       indirizzo_completo: `${datiCliente.indirizzoFornitura || ''}, ${datiCliente.cap || ''} ${datiCliente.citta || ''} (${datiCliente.provincia || ''})`,
       
       // Offerta
-      fornitore: offerta.fornitori?.nome || 'Non disponibile',
-      nome_offerta: offerta.nome_offerta || '',
+      fornitore: offerta.fornitori?.nome || 'N/A',
+      nome_offerta: offerta.nome_offerta || 'N/A',
       tipo_fornitura: formatTipoFornitura(offerta.tipo_fornitura),
       
       // Dati tecnici
@@ -144,68 +208,109 @@ export const inviaEmailOperatore = async (datiCliente, offerta, preContratto, le
       // Commissione (visibile solo internamente)
       commissione_prevista: formatCurrency(offerta.commissione || 0),
       
-      // Link gestione (da configurare)
-      link_pannello: `https://tuodominio.com/admin/leads/${leadId}`,
+      // Link gestione
+      link_pannello: `https://tuodominio.com/admin/leads/${leadId || 'unknown'}`,
       
       // Note
       note_cliente: datiCliente.note || 'Nessuna nota aggiuntiva',
       
       // Info sistema
-      lead_id: leadId,
-      pre_contratto_id: preContratto.id
+      lead_id: leadId || 'N/A',
+      pre_contratto_id: preContratto?.id || 'N/A'
     };
 
-    const response = await emailjs.send(
-      SERVICE_ID,
-      TEMPLATE_OPERATOR,
-      templateParams
-    );
+    const result = await sendEmailWithRetry(SERVICE_ID, TEMPLATE_OPERATOR, templateParams);
+    
+    return { 
+      success: true, 
+      response: result.response,
+      message: 'Email operatore inviata con successo',
+      attempts: result.attempt
+    };
 
-    console.log('Email operatore inviata:', response);
-    return { success: true, response };
   } catch (error) {
-    console.error('Errore invio email operatore:', error);
-    return { success: false, error: error.message };
+    console.error('❌ Errore critico invio email operatore:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      code: 'EMAIL_OPERATOR_FAILED'
+    };
   }
 };
 
 /**
- * Invia entrambe le email (cliente e operatore)
+ * Invia entrambe le email (cliente e operatore) con gestione errori migliorata
  */
 export const inviaEmailComplete = async (datiCliente, offerta, preContratto, leadId) => {
+  console.log('🚀 Inizio invio email complete...');
+  
   const risultati = {
-    cliente: { success: false },
-    operatore: { success: false }
+    cliente: { success: false, message: 'Non ancora inviata' },
+    operatore: { success: false, message: 'Non ancora inviata' }
   };
 
   try {
-    // Invia email cliente
+    // STEP 1: Invia email cliente
+    console.log('📧 STEP 1/2: Invio email cliente...');
     risultati.cliente = await inviaEmailCliente(datiCliente, offerta, preContratto);
     
-    // Piccolo delay per evitare problemi su connessioni lente (mobile)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Invia email operatore
+    if (risultati.cliente.success) {
+      console.log(`✅ Email cliente inviata (${risultati.cliente.attempts} tentativi)`);
+    } else {
+      console.warn('⚠️ Email cliente non inviata:', risultati.cliente.error);
+    }
+
+    // STEP 2: Invia email operatore
+    console.log('📧 STEP 2/2: Invio email operatore...');
     risultati.operatore = await inviaEmailOperatore(datiCliente, offerta, preContratto, leadId);
+    
+    if (risultati.operatore.success) {
+      console.log(`✅ Email operatore inviata (${risultati.operatore.attempts} tentativi)`);
+    } else {
+      console.warn('⚠️ Email operatore non inviata:', risultati.operatore.error);
+    }
+
+    // Verifica risultati
+    const tutteInviate = risultati.cliente.success && risultati.operatore.success;
+    const almenoUnaInviata = risultati.cliente.success || risultati.operatore.success;
+
+    let message = '';
+    if (tutteInviate) {
+      message = '✅ Tutte le email sono state inviate con successo!';
+    } else if (almenoUnaInviata) {
+      message = '⚠️ Alcune email sono state inviate. Contatteremo comunque il cliente.';
+    } else {
+      message = '❌ Errore nell\'invio delle email. I dati sono stati salvati e ti contatteremo.';
+    }
+
+    return {
+      success: tutteInviate, // Solo true se ENTRAMBE inviate
+      partial: almenoUnaInviata && !tutteInviate, // True se almeno una inviata
+      risultati,
+      message,
+      details: {
+        clienteInviata: risultati.cliente.success,
+        operatoreInviata: risultati.operatore.success
+      }
+    };
+
   } catch (error) {
-    console.error('Errore generale invio email:', error);
+    console.error('❌ Errore generale invio email:', error);
+    return {
+      success: false,
+      partial: false,
+      risultati,
+      message: 'Errore tecnico nell\'invio delle email. I dati sono stati comunque salvati.',
+      error: error.message
+    };
   }
-
-  const tutteInviate = risultati.cliente.success && risultati.operatore.success;
-
-  return {
-    success: tutteInviate,
-    risultati,
-    message: tutteInviate 
-      ? 'Email inviate con successo!'
-      : 'Alcune email non sono state inviate. Contatta il supporto.'
-  };
 };
 
 /**
  * Utility functions
  */
 function formatCurrency(value) {
+  if (value === null || value === undefined) return '€ 0,00';
   return new Intl.NumberFormat('it-IT', {
     style: 'currency',
     currency: 'EUR'
