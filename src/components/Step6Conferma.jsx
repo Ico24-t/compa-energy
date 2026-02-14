@@ -1,11 +1,42 @@
 import React, { useEffect } from 'react';
 import { formatCurrency } from '../utils/validators';
 
-const Step6Conferma = ({ offerta, emailInviata, codiceRichiesta }) => {
+const Step6Conferma = ({ offerta, emailInviata, emailStatus, codiceRichiesta }) => {
   useEffect(() => {
     // Scroll to top quando si arriva a questa pagina
     window.scrollTo(0, 0);
   }, []);
+
+  // Determina il messaggio email in base allo stato
+  const getEmailMessage = () => {
+    if (emailInviata && emailStatus?.cliente && emailStatus?.operatore) {
+      return {
+        type: 'success',
+        icon: '✅',
+        text: "Ti abbiamo inviato un'email con tutti i dettagli dell'offerta. Controlla la tua casella di posta (anche nello spam)."
+      };
+    } else if (emailInviata && (emailStatus?.cliente || emailStatus?.operatore)) {
+      return {
+        type: 'warning',
+        icon: '⚠️',
+        text: "Abbiamo riscontrato problemi nell'invio di alcune email, ma i tuoi dati sono stati salvati correttamente. Verrai contattato al più presto."
+      };
+    } else if (!emailInviata) {
+      return {
+        type: 'info',
+        icon: '📱',
+        text: "I tuoi dati sono stati salvati con successo. Riceverai conferma via email o telefono entro 24 ore."
+      };
+    } else {
+      return {
+        type: 'pending',
+        icon: '⏳',
+        text: "Riceverai a breve un'email con tutti i dettagli dell'offerta."
+      };
+    }
+  };
+
+  const emailMessage = getEmailMessage();
 
   return (
     <div className="step-container step-conferma">
@@ -17,7 +48,7 @@ const Step6Conferma = ({ offerta, emailInviata, codiceRichiesta }) => {
 
       <div className="step-header">
         <h1>🎉 Richiesta inviata con successo!</h1>
-        <p className="subtitle">La tua offerta è stata generata e inviata</p>
+        <p className="subtitle">La tua offerta è stata generata e salvata</p>
       </div>
 
       <div className="step-content">
@@ -58,11 +89,20 @@ const Step6Conferma = ({ offerta, emailInviata, codiceRichiesta }) => {
               </div>
               <div className="timeline-content">
                 <h4>Email di conferma</h4>
-                <p>
-                  {emailInviata 
-                    ? "✅ Ti abbiamo inviato un&apos;email con tutti i dettagli dell&apos;offerta. Controlla la tua casella di posta (anche nello spam)."
-                    : "⏳ Riceverai a breve un&apos;email con tutti i dettagli dell&apos;offerta."}
-                </p>
+                <div className={`email-status email-status-${emailMessage.type}`}>
+                  <span className="email-icon">{emailMessage.icon}</span>
+                  <p>{emailMessage.text}</p>
+                </div>
+                {emailStatus && !emailStatus.cliente && emailStatus.operatore && (
+                  <p className="email-note">
+                    <small>ℹ️ L&apos;email cliente non è partita, ma l&apos;operatore ha ricevuto la tua richiesta.</small>
+                  </p>
+                )}
+                {emailStatus && emailStatus.cliente && !emailStatus.operatore && (
+                  <p className="email-note">
+                    <small>ℹ️ Hai ricevuto l&apos;email, l&apos;operatore sarà informato a breve.</small>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -125,7 +165,7 @@ const Step6Conferma = ({ offerta, emailInviata, codiceRichiesta }) => {
             <span className="info-icon">📞</span>
             <h4>Contatti</h4>
             <p>
-              Se hai domande urgenti, puoi contattarci via email all&apos;indirizzo che trovi nell&apos;email di conferma.
+              Se hai domande urgenti, usa il codice richiesta <strong>{codiceRichiesta}</strong> per contattarci.
             </p>
           </div>
 
@@ -163,7 +203,7 @@ const Step6Conferma = ({ offerta, emailInviata, codiceRichiesta }) => {
               <h4>Non ho ricevuto l&apos;email, cosa faccio?</h4>
               <p>
                 Controlla la cartella spam/posta indesiderata. 
-                Se non la trovi, contattaci usando il codice richiesta fornito sopra.
+                Se non la trovi entro 24 ore, contattaci usando il codice richiesta <strong>{codiceRichiesta}</strong>.
               </p>
             </div>
 
@@ -205,7 +245,7 @@ const Step6Conferma = ({ offerta, emailInviata, codiceRichiesta }) => {
         <div className="messaggio-finale">
           <h3>Grazie per la tua fiducia! 🙏</h3>
           <p>
-            Il team è già al lavoro sulla tua pratica. A presto!
+            Il team è già al lavoro sulla tua pratica {codiceRichiesta && `(${codiceRichiesta})`}. A presto!
           </p>
         </div>
       </div>
