@@ -1551,3 +1551,54 @@ body {
     box-shadow: none;
   }
 }
+/* ============================================
+   OFFLINE BANNER - DA AGGIUNGERE IN FONDO AL FILE
+   ============================================ */
+.offline-banner,
+.error-banner {
+  background-color: #ffc107;
+  color: #856404;
+  padding: 10px 0;
+  text-align: center;
+  font-size: 14px;
+  border-bottom: 1px solid #ffb300;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+}
+
+.error-banner {
+  background-color: #f8d7da;
+  color: #721c24;
+  border-bottom-color: #f5c6cb;
+}
+
+.offline-banner p,
+.error-banner p {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Miglioramenti per mobile */
+@media (max-width: 768px) {
+  .offline-banner,
+  .error-banner {
+    font-size: 12px;
+    padding: 8px 0;
+  }
+}
+
+/* Banner per debug (opzionale) */
+.debug-banner {
+  background-color: #000;
+  color: #0f0;
+  padding: 5px 0;
+  font-size: 11px;
+  font-family: monospace;
+  text-align: center;
+  border-bottom: 1px solid #333;
+  position: sticky;
+  top: 0;
+  z-index: 1001;
+}
