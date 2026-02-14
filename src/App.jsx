@@ -13,10 +13,12 @@ import {
   calcolaMiglioreOfferta,
   updateLeadTelefono,
   createPreContratto,
-  confermaInvioPreContratto
+  confermaInvioPreContratto,
+  testSupabaseConnection
 } from './services/offerteService';
 
-import { initEmailJS, inviaEmailComplete } from './services/emailService';
+import { initEmailJS, checkEmailJSConfig } from './services/emailService';
+import { testConnection } from './services/supabaseClient';
 
 import './styles/App.css';
 
@@ -29,45 +31,86 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [emailInviata, setEmailInviata] = useState(false);
   const [codiceRichiesta, setCodiceRichiesta] = useState('');
+  const [connectionError, setConnectionError] = useState(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
-  // Inizializza EmailJS all&apos;avvio
+  // Monitora stato connessione
   useEffect(() => {
-    initEmailJS();
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Inizializza servizi all'avvio
+  useEffect(() => {
+    const init = async () => {
+      console.log('🚀 Inizializzazione app...');
+      console.log('📱 Dispositivo:', /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop');
+      
+      // Inizializza EmailJS
+      const emailJsInit = initEmailJS();
+      
+      // Verifica configurazione EmailJS
+      const emailConfig = checkEmailJSConfig();
+      console.log('📧 Config EmailJS:', emailConfig);
+      
+      // Test connessione Supabase
+      const supabaseTest = await testConnection();
+      console.log('🔌 Test Supabase:', supabaseTest);
+      
+      if (!supabaseTest.success) {
+        setConnectionError('Problemi di connessione al database. Verifica la tua connessione internet.');
+      }
+    };
+    
+    init();
   }, []);
 
   // Handler per passare al prossimo step
   const handleNext = async (stepData) => {
+    // Verifica connessione prima di procedere
+    if (isOffline) {
+      alert('Sei offline. Alcune funzionalità potrebbero non essere disponibili.');
+    }
+
     const newFormData = { ...formData, ...stepData };
     setFormData(newFormData);
 
-    switch (currentStep) {
-      case 1:
-        // Step 1: Salva tipo cliente e crea lead
-        await handleStep1(newFormData);
-        break;
+    try {
+      switch (currentStep) {
+        case 1:
+          await handleStep1(newFormData);
+          break;
 
-      case 2:
-        // Step 2: Salva consumi e calcola offerta
-        await handleStep2(newFormData);
-        break;
+        case 2:
+          await handleStep2(newFormData);
+          break;
 
-      case 3:
-        // Step 3: Gestisce telefono e interesse
-        await handleStep3(newFormData);
-        break;
+        case 3:
+          await handleStep3(newFormData);
+          break;
 
-      case 4:
-        // Step 4: Passa allo step 5 (anagrafica)
-        setCurrentStep(5);
-        break;
+        case 4:
+          setCurrentStep(5);
+          break;
 
-      case 5:
-        // Step 5: Salva anagrafica e invia email
-        await handleStep5(newFormData);
-        break;
+        case 5:
+          await handleStep5(newFormData);
+          break;
 
-      default:
-        setCurrentStep(currentStep + 1);
+        default:
+          setCurrentStep(currentStep + 1);
+      }
+    } catch (error) {
+      console.error('❌ Errore nel passaggio step:', error);
+      alert('Si è verificato un errore. Riprova più tardi.');
     }
   };
 
@@ -79,8 +122,24 @@ function App() {
   // Step 1: Crea lead nel database
   const handleStep1 = async (data) => {
     setLoading(true);
-    setCurrentStep(2);
-    setLoading(false);
+    try {
+      // Crea lead immediatamente
+      const leadResult = await createLead({
+        email: data.email || 'temp@example.com', // Email temporanea se non presente
+        tipoCliente: data.tipoCliente,
+        marketingConsent: false
+      });
+
+      if (leadResult.success) {
+        setLeadId(leadResult.data.id);
+        console.log('✅ Lead creato:', leadResult.data.id);
+      }
+    } catch (error) {
+      console.error('❌ Errore creazione lead:', error);
+    } finally {
+      setLoading(false);
+      setCurrentStep(2);
+    }
   };
 
   // Step 2: Salva consumi e crea lead con email
@@ -92,20 +151,20 @@ function App() {
       if (!leadId) {
         const leadResult = await createLead({
           email: data.email,
-          tipoCliente: data.tipoCliente,
-          marketingConsent: data.marketingConsent
+          tipoCliente: data.tipoCliente || formData.tipoCliente,
+          marketingConsent: data.marketingConsent || false
         });
 
         if (!leadResult.success) {
-          alert('Errore nel salvataggio dei dati. Riprova.');
-          setLoading(false);
-          return;
+          throw new Error('Errore nel salvataggio dei dati');
         }
 
         setLeadId(leadResult.data.id);
-        
-        // Salva consumi
-        await saveConsumi(leadResult.data.id, {
+      }
+      
+      // Salva consumi
+      if (leadId || leadId) {
+        await saveConsumi(leadId || leadId, {
           tipoFornitura: data.tipoFornitura,
           potenzaContatore: data.potenzaContatore,
           spesaMensile: data.spesaMensile,
@@ -114,7 +173,7 @@ function App() {
         });
 
         // Calcola migliore offerta
-        const offertaResult = await calcolaMiglioreOfferta(leadResult.data.id, {
+        const offertaResult = await calcolaMiglioreOfferta(leadId || leadId, {
           tipoFornitura: data.tipoFornitura,
           spesaMensile: data.spesaMensile,
           consumoAnnuoKwh: data.consumoAnnuoKwh,
@@ -132,7 +191,7 @@ function App() {
 
       setCurrentStep(3);
     } catch (error) {
-      console.error('Errore step 2:', error);
+      console.error('❌ Errore step 2:', error);
       alert('Si è verificato un errore. Riprova.');
     } finally {
       setLoading(false);
@@ -142,8 +201,7 @@ function App() {
   // Step 3: Gestisce interesse e telefono
   const handleStep3 = async (data) => {
     if (!data.interessato) {
-      // Non interessato - termina qui
-      setCurrentStep(6); // Vai a conferma
+      setCurrentStep(6);
       return;
     }
 
@@ -160,6 +218,10 @@ function App() {
     setLoading(true);
 
     try {
+      if (!leadId || !offerta) {
+        throw new Error('Dati mancanti');
+      }
+
       // Crea pre-contratto
       const preContrattoResult = await createPreContratto(leadId, offerta.id, {
         nome: data.nome,
@@ -179,9 +241,7 @@ function App() {
       });
 
       if (!preContrattoResult.success) {
-        alert('Errore nel salvataggio dei dati. Riprova.');
-        setLoading(false);
-        return;
+        throw new Error('Errore nel salvataggio');
       }
 
       setCodiceRichiesta(preContrattoResult.data.id.substring(0, 8).toUpperCase());
@@ -190,10 +250,11 @@ function App() {
       const datiCompleti = {
         ...formData,
         ...data,
-        telefono: formData.telefono
+        telefono: formData.telefono,
+        email: formData.email
       };
 
-      // Invia email
+      // Invia email (anche se offline, salva i dati)
       const emailResult = await inviaEmailComplete(
         datiCompleti,
         offerta,
@@ -206,17 +267,36 @@ function App() {
         
         // Conferma invio nel database
         await confermaInvioPreContratto(preContrattoResult.data.id, leadId);
-      } else {
-        console.error('Errore invio email:', emailResult);
-        // Procedi comunque - l&apos;email è secondaria
+      } else if (emailResult.offline) {
+        // Salva in localStorage per invio quando torna online
+        saveOfflineData(preContrattoResult.data.id, datiCompleti, offerta);
+        setEmailInviata(false);
       }
 
       setCurrentStep(6);
     } catch (error) {
-      console.error('Errore step 5:', error);
-      alert('Si è verificato un errore. Riprova.');
+      console.error('❌ Errore step 5:', error);
+      alert('Si è verificato un errore. I tuoi dati sono stati salvati, ma potrebbero esserci problemi con l\'invio delle email.');
+      setCurrentStep(6);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Salva dati per invio offline
+  const saveOfflineData = (preContrattoId, dati, offerta) => {
+    try {
+      const offlineData = JSON.parse(localStorage.getItem('offlineEmails') || '[]');
+      offlineData.push({
+        id: preContrattoId,
+        dati,
+        offerta,
+        timestamp: new Date().toISOString()
+      });
+      localStorage.setItem('offlineEmails', JSON.stringify(offlineData));
+      console.log('💾 Dati salvati per invio offline');
+    } catch (e) {
+      console.error('Errore salvataggio offline:', e);
     }
   };
 
@@ -286,10 +366,28 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* Banner offline */}
+      {isOffline && (
+        <div className="offline-banner">
+          <div className="container">
+            <p>⚠️ Sei offline. I dati verranno salvati e inviati quando tornerai online.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Errore connessione */}
+      {connectionError && (
+        <div className="error-banner">
+          <div className="container">
+            <p>⚠️ {connectionError}</p>
+          </div>
+        </div>
+      )}
+
       <header className="app-header">
         <div className="container">
           <h1 className="app-title">⚡ Comparatore Energia</h1>
-          <p className="app-subtitle">Trova l&apos;offerta luce e gas perfetta per te</p>
+          <p className="app-subtitle">Trova l'offerta luce e gas perfetta per te</p>
         </div>
       </header>
 
