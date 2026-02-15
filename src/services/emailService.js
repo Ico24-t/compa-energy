@@ -1,8 +1,8 @@
 import emailjs from 'emailjs-com'
 
 const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID
-const customerTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID_CUSTOMER
-const operatorTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID_OPERATOR
+const customerTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID_CLIENTE
+const operatorTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID_AZIENDA
 const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
 
 // Inizializza EmailJS
