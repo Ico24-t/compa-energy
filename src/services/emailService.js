@@ -17,6 +17,9 @@ export const sendCustomerEmail = async (data) => {
     const calcolo = data.calcolo_risparmio || {}
     
     const templateParams = {
+      // Email destinatario - FONDAMENTALE!
+      to_email: data.email,
+      
       // Subject
       provider_name: offerta.fornitori?.nome || data.fornitore_nome || '',
       savings_annual: calcolo.risparmio_annuo?.toFixed(2) || '0',
@@ -69,10 +72,10 @@ export const sendCustomerEmail = async (data) => {
       templateParams
     )
 
-    console.log('Email cliente inviata con successo:', response)
+    console.log('✅ Email cliente inviata con successo:', response)
     return { success: true, response }
   } catch (error) {
-    console.error('Errore invio email cliente:', error)
+    console.error('❌ Errore invio email cliente:', error)
     return { success: false, error: error.message }
   }
 }
@@ -114,7 +117,7 @@ export const sendOperatorEmail = async (data) => {
       risparmio_annuo: `€ ${calcolo.risparmio_annuo?.toFixed(2) || '0'}`,
       risparmio_percentuale: `${calcolo.risparmio_percentuale?.toFixed(1) || '0'}%`,
       
-      // Commissione (calcola se disponibile)
+      // Commissione
       commissione_prevista: calcolo.tua_commissione 
         ? `€ ${calcolo.tua_commissione.toFixed(2)}` 
         : 'Da calcolare',
@@ -148,10 +151,10 @@ export const sendOperatorEmail = async (data) => {
       templateParams
     )
 
-    console.log('Email operatore inviata con successo:', response)
+    console.log('✅ Email operatore inviata con successo:', response)
     return { success: true, response }
   } catch (error) {
-    console.error('Errore invio email operatore:', error)
+    console.error('❌ Errore invio email operatore:', error)
     return { success: false, error: error.message }
   }
 }
@@ -160,11 +163,20 @@ export const sendOperatorEmail = async (data) => {
  * Invia entrambe le email (cliente + operatore)
  */
 export const sendBothEmails = async (data) => {
+  console.log('📧 Inizio invio email...')
+  
   const customerResult = await sendCustomerEmail(data)
   const operatorResult = await sendOperatorEmail(data)
 
+  const success = customerResult.success && operatorResult.success
+  
+  console.log('📊 Risultato invio:', {
+    cliente: customerResult.success ? '✅' : '❌',
+    operatore: operatorResult.success ? '✅' : '❌'
+  })
+
   return {
-    success: customerResult.success && operatorResult.success,
+    success,
     customerEmail: customerResult,
     operatorEmail: operatorResult
   }
