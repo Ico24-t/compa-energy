@@ -7,6 +7,13 @@ import { updateLeadStatus } from '../services/api'
 
 const Step6Confirmation = () => {
   const { formData, leadCode, leadId, resetForm } = useForm()
+  useEffect(() => {
+  console.log('=== DEBUG EMAILJS ===')
+  console.log('Service ID:', import.meta.env.VITE_EMAILJS_SERVICE_ID)
+  console.log('Template Cliente:', import.meta.env.VITE_EMAILJS_TEMPLATE_ID_CLIENTE)
+  console.log('Template Azienda:', import.meta.env.VITE_EMAILJS_TEMPLATE_ID_AZIENDA)
+  console.log('Public Key:', import.meta.env.VITE_EMAILJS_PUBLIC_KEY ? 'SET' : 'MISSING')
+}, [])
   const [sending, setSending] = useState(true)
   const [emailsSent, setEmailsSent] = useState(false)
 
