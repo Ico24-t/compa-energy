@@ -346,6 +346,17 @@ const BillUpload = () => {
     setLoading(true)
 
     try {
+      // 1. Aggiorna lead con telefono
+      await supabase
+        .from('leads')
+        .update({ 
+          telefono: formatPhone(formData.telefono),
+          telefono_verificato: false,
+          stato: 'dati_anagrafici'
+        })
+        .eq('id', leadId)
+
+      // 2. Salva pre-contratto con data_invio
       const { error: contractError } = await supabase
         .from('pre_contratti')
         .insert([{
@@ -354,11 +365,13 @@ const BillUpload = () => {
           nome: formData.nome,
           cognome: formData.cognome,
           ...anagraficaData,
-          stato: 'bozza'
+          stato: 'inviato',
+          data_invio: new Date().toISOString()
         }])
 
       if (contractError) throw contractError
 
+      // 3. Aggiorna stato finale lead
       await supabase
         .from('leads')
         .update({ stato: 'pre_contratto' })
