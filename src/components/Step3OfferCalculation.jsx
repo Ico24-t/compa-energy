@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useContext } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { TrendingDown, CheckCircle, Phone, Loader, ChevronRight, ChevronLeft, Heart } from 'lucide-react'
-import { FormContext } from '../contexts/FormContext'
+import { useForm } from '../contexts/FormContext'
 import { getAvailableOffers, saveConsumption, updateLeadStatus } from '../services/api'
 import { findBestOffer, calculateSavings, formatCurrency } from '../utils/calculations'
 import { validatePhone, formatPhone } from '../utils/validation'
 
 const Step3OfferCalculation = ({ onNext, onPrev }) => {
-  const { formData, updateFormData } = useContext(FormContext)
+  const { formData, updateFormData } = useForm()
 
   const [loading, setLoading] = useState(true)
   const [conveniente, setConveniente] = useState(null)
