@@ -1,11 +1,11 @@
-import React, { useState, useContext } from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { MapPin, ChevronRight, ChevronLeft } from 'lucide-react'
-import { FormContext } from '../contexts/FormContext'
+import { useForm } from '../contexts/FormContext'
 import { cercaPerCAP, cercaProvinciaPerCitta } from '../utils/comuni'
 
 const Step5PersonalData = ({ onNext, onPrev }) => {
-  const { formData, updateFormData } = useContext(FormContext)
+  const { formData, updateFormData } = useForm()
 
   const [nome, setNome] = useState(formData.nome || '')
   const [cognome, setCognome] = useState(formData.cognome || '')
