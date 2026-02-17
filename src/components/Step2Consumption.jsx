@@ -1,7 +1,7 @@
-import React, { useState, useContext } from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Zap, Flame, Layers, Users, Euro, ChevronRight, ChevronLeft } from 'lucide-react'
-import { FormContext } from '../contexts/FormContext'
+import { Zap, Flame, Layers, Users, ChevronRight, ChevronLeft } from 'lucide-react'
+import { useForm } from '../contexts/FormContext'
 
 // Tabella consumi medi ARERA per numero persone
 const CONSUMI_LUCE = {
@@ -16,7 +16,7 @@ const CONSUMI_GAS = {
 }
 
 const Step2Consumption = ({ onNext, onPrev }) => {
-  const { formData, updateFormData } = useContext(FormContext)
+  const { formData, updateFormData } = useForm()
 
   const [tipoFornitura, setTipoFornitura] = useState(formData.tipo_fornitura || '')
   const [persone, setPersone] = useState(formData.persone_casa || 2)
