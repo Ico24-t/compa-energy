@@ -4,8 +4,8 @@ import { MapPin, ChevronRight, ChevronLeft } from 'lucide-react'
 import { useForm } from '../contexts/FormContext'
 import { cercaPerCAP, cercaProvinciaPerCitta } from '../utils/comuni'
 
-const Step5PersonalData = ({ onNext, onPrev }) => {
-  const { formData, updateFormData } = useForm()
+const Step5PersonalData = () => {
+  const { formData, updateFormData, nextStep, prevStep } = useForm()
 
   const [nome, setNome] = useState(formData.nome || '')
   const [cognome, setCognome] = useState(formData.cognome || '')
@@ -92,7 +92,7 @@ const Step5PersonalData = ({ onNext, onPrev }) => {
       marketing_acconsentito: marketingAccettato
     })
 
-    onNext()
+    nextStep()
   }
 
   return (
@@ -285,7 +285,7 @@ const Step5PersonalData = ({ onNext, onPrev }) => {
 
       {/* NAVIGAZIONE */}
       <div className="flex gap-4">
-        <button onClick={onPrev} className="btn-secondary flex items-center gap-2">
+        <button onClick={prevStep} className="btn-secondary flex items-center gap-2">
           <ChevronLeft className="w-5 h-5" /> Indietro
         </button>
         <button onClick={handleNext} className="btn-primary flex-1 flex items-center justify-center gap-2">
