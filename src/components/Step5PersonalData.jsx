@@ -1,287 +1,296 @@
-import React, { useState } from 'react'
-import { User, MapPin, FileText, Home } from 'lucide-react'
-import { useForm } from '../contexts/FormContext'
+import React, { useState, useContext } from 'react'
 import { motion } from 'framer-motion'
-import { validateForm, validateCodiceFiscale, validateCAP, validatePOD, validatePDR } from '../utils/validation'
-import { createPreContract, updateLeadStatus } from '../services/api'
+import { MapPin, ChevronRight, ChevronLeft } from 'lucide-react'
+import { FormContext } from '../contexts/FormContext'
+import { cercaPerCAP, cercaProvinciaPerCitta } from '../utils/comuni'
 
-const Step5PersonalData = () => {
-  const { formData, updateFormData, nextStep, leadId, setLoading } = useForm()
+const Step5PersonalData = ({ onNext, onPrev }) => {
+  const { formData, updateFormData } = useContext(FormContext)
+
+  const [nome, setNome] = useState(formData.nome || '')
+  const [cognome, setCognome] = useState(formData.cognome || '')
+  const [indirizzo, setIndirizzo] = useState(formData.indirizzo_fornitura || '')
+  const [cap, setCap] = useState(formData.cap || '')
+  const [citta, setCitta] = useState(formData.citta || '')
+  const [provincia, setProvincia] = useState(formData.provincia || '')
+  const [note, setNote] = useState(formData.note_cliente || '')
+  const [privacyAccettata, setPrivacyAccettata] = useState(formData.privacy_acconsentito || false)
+  const [marketingAccettato, setMarketingAccettato] = useState(formData.marketing_acconsentito || false)
+
+  // Suggerimenti CAP
+  const [suggerimentiCap, setSuggerimentiCap] = useState([])
+  const [capNonTrovato, setCapNonTrovato] = useState(false)
+
   const [errors, setErrors] = useState({})
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    const requiredFields = ['nome', 'cognome', 'codice_fiscale', 'data_nascita', 
-                           'indirizzo_fornitura', 'cap', 'citta', 'provincia']
-    
-    const validation = validateForm(formData, requiredFields)
-    
-    if (!validateCodiceFiscale(formData.codice_fiscale)) {
-      validation.errors.codice_fiscale = 'Codice fiscale non valido'
-      validation.isValid = false
+  // Handler CAP
+  const handleCapChange = (value) => {
+    setCap(value)
+    setCapNonTrovato(false)
+    setSuggerimentiCap([])
+
+    if (value.length === 5) {
+      const risultati = cercaPerCAP(value)
+      if (risultati.length === 1) {
+        // Un solo comune → autocompila
+        setCitta(risultati[0].nome)
+        setProvincia(risultati[0].provincia)
+      } else if (risultati.length > 1) {
+        // Più comuni → mostra lista
+        setSuggerimentiCap(risultati)
+        setCitta('')
+        setProvincia('')
+      } else {
+        // CAP non trovato
+        setCapNonTrovato(true)
+        setCitta('')
+        setProvincia('')
+      }
+    } else {
+      setCitta('')
+      setProvincia('')
     }
-    
-    if (!validateCAP(formData.cap)) {
-      validation.errors.cap = 'CAP non valido'
-      validation.isValid = false
+  }
+
+  // Selezione comune dalla lista
+  const handleSelezionaCitta = (comune) => {
+    setCitta(comune.nome)
+    setProvincia(comune.provincia)
+    setSuggerimentiCap([])
+  }
+
+  // Handler città (senza CAP)
+  const handleCittaChange = (value) => {
+    setCitta(value)
+    if (value.length >= 3) {
+      const prov = cercaProvinciaPerCitta(value)
+      if (prov) setProvincia(prov)
     }
-    
-    if (formData.codice_pod && !validatePOD(formData.codice_pod)) {
-      validation.errors.codice_pod = 'Codice POD non valido'
-      validation.isValid = false
-    }
-    
-    if (formData.codice_pdr && !validatePDR(formData.codice_pdr)) {
-      validation.errors.codice_pdr = 'Codice PDR non valido'
-      validation.isValid = false
-    }
-    
-    if (!validation.isValid) {
-      setErrors(validation.errors)
-      return
-    }
-    
-    setLoading(true)
-    
-    try {
-      const contractResult = await createPreContract({
-        lead_id: leadId,
-        offerta_id: formData.offerta_selezionata.id,
-        nome: formData.nome,
-        cognome: formData.cognome,
-        codice_fiscale: formData.codice_fiscale.toUpperCase(),
-        data_nascita: formData.data_nascita,
-        luogo_nascita: formData.luogo_nascita,
-        indirizzo_fornitura: formData.indirizzo_fornitura,
-        cap: formData.cap,
-        citta: formData.citta,
-        provincia: formData.provincia,
-        codice_pod: formData.codice_pod || null,
-        codice_pdr: formData.codice_pdr || null,
-        fornitore_attuale: formData.fornitore_attuale,
-        note_cliente: formData.note_cliente
-      })
-      
-      if (!contractResult.success) throw new Error(contractResult.error)
-      
-      await updateLeadStatus(leadId, 'dati_anagrafici')
-      
-      nextStep()
-    } catch (error) {
-      console.error('Errore salvataggio anagrafica:', error)
-      setErrors({ submit: 'Si è verificato un errore. Riprova.' })
-    } finally {
-      setLoading(false)
-    }
+  }
+
+  const validate = () => {
+    const newErrors = {}
+    if (!nome.trim()) newErrors.nome = 'Nome obbligatorio'
+    if (!cognome.trim()) newErrors.cognome = 'Cognome obbligatorio'
+    if (!privacyAccettata) newErrors.privacy = 'Devi accettare la privacy policy'
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleNext = () => {
+    if (!validate()) return
+
+    updateFormData({
+      nome: nome.trim(),
+      cognome: cognome.trim(),
+      indirizzo_fornitura: indirizzo.trim(),
+      cap,
+      citta: citta.trim(),
+      provincia: provincia.trim(),
+      note_cliente: note.trim(),
+      privacy_acconsentito: privacyAccettata,
+      marketing_acconsentito: marketingAccettato
+    })
+
+    onNext()
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="w-full max-w-3xl mx-auto px-4"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="space-y-8"
     >
-      <div className="card">
+      <div className="text-center">
         <h2 className="text-2xl md:text-3xl font-display font-bold text-slate-900 mb-2">
-          I tuoi dati
+          I tuoi dati 📋
         </h2>
-        <p className="text-slate-600 mb-6">
-          Ultimi passaggi per ricevere la tua offerta personalizzata
-        </p>
+        <p className="text-slate-600">Quasi fatto! Solo gli ultimi dettagli</p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Dati personali */}
-          <div>
-            <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 mb-4">
-              <User className="w-5 h-5" />
-              Dati Personali
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Nome *</label>
-                <input
-                  type="text"
-                  value={formData.nome}
-                  onChange={(e) => updateFormData({ nome: e.target.value })}
-                  className="input-field"
-                />
-                {errors.nome && <p className="mt-1 text-sm text-red-600">{errors.nome}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Cognome *</label>
-                <input
-                  type="text"
-                  value={formData.cognome}
-                  onChange={(e) => updateFormData({ cognome: e.target.value })}
-                  className="input-field"
-                />
-                {errors.cognome && <p className="mt-1 text-sm text-red-600">{errors.cognome}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Codice Fiscale *</label>
-                <input
-                  type="text"
-                  value={formData.codice_fiscale}
-                  onChange={(e) => updateFormData({ codice_fiscale: e.target.value.toUpperCase() })}
-                  className="input-field"
-                  maxLength={16}
-                />
-                {errors.codice_fiscale && <p className="mt-1 text-sm text-red-600">{errors.codice_fiscale}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Data di Nascita *</label>
-                <input
-                  type="date"
-                  value={formData.data_nascita}
-                  onChange={(e) => updateFormData({ data_nascita: e.target.value })}
-                  className="input-field"
-                />
-                {errors.data_nascita && <p className="mt-1 text-sm text-red-600">{errors.data_nascita}</p>}
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Luogo di Nascita</label>
-                <input
-                  type="text"
-                  value={formData.luogo_nascita}
-                  onChange={(e) => updateFormData({ luogo_nascita: e.target.value })}
-                  className="input-field"
-                />
-              </div>
-            </div>
-          </div>
+      {/* Recap email e telefono già acquisiti */}
+      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+        <p className="text-sm font-semibold text-green-800 mb-2">✓ Già acquisiti:</p>
+        <div className="flex flex-wrap gap-4 text-sm text-green-700">
+          <span>📧 {formData.email}</span>
+          {formData.telefono && <span>📞 {formData.telefono}</span>}
+        </div>
+      </div>
 
-          {/* Indirizzo fornitura */}
-          <div>
-            <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 mb-4">
-              <MapPin className="w-5 h-5" />
-              Indirizzo di Fornitura
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Indirizzo completo *</label>
-                <input
-                  type="text"
-                  value={formData.indirizzo_fornitura}
-                  onChange={(e) => updateFormData({ indirizzo_fornitura: e.target.value })}
-                  className="input-field"
-                  placeholder="Via/Piazza, numero civico"
-                />
-                {errors.indirizzo_fornitura && <p className="mt-1 text-sm text-red-600">{errors.indirizzo_fornitura}</p>}
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="col-span-1">
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">CAP *</label>
-                  <input
-                    type="text"
-                    value={formData.cap}
-                    onChange={(e) => updateFormData({ cap: e.target.value })}
-                    className="input-field"
-                    maxLength={5}
-                  />
-                  {errors.cap && <p className="mt-1 text-sm text-red-600">{errors.cap}</p>}
-                </div>
-                <div className="col-span-1 md:col-span-2">
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Città *</label>
-                  <input
-                    type="text"
-                    value={formData.citta}
-                    onChange={(e) => updateFormData({ citta: e.target.value })}
-                    className="input-field"
-                  />
-                  {errors.citta && <p className="mt-1 text-sm text-red-600">{errors.citta}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Provincia *</label>
-                  <input
-                    type="text"
-                    value={formData.provincia}
-                    onChange={(e) => updateFormData({ provincia: e.target.value.toUpperCase() })}
-                    className="input-field"
-                    maxLength={2}
-                  />
-                  {errors.provincia && <p className="mt-1 text-sm text-red-600">{errors.provincia}</p>}
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="card space-y-6">
 
-          {/* Dati fornitura attuale */}
+        {/* NOME E COGNOME */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 mb-4">
-              <FileText className="w-5 h-5" />
-              Fornitura Attuale
-            </h3>
-            <div className="space-y-4">
-              {(formData.tipo_fornitura === 'luce' || formData.tipo_fornitura === 'dual') && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Codice POD (Luce) <span className="text-slate-400 font-normal">- opzionale</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.codice_pod}
-                    onChange={(e) => updateFormData({ codice_pod: e.target.value.toUpperCase() })}
-                    className="input-field"
-                    placeholder="IT001E12345678"
-                  />
-                  {errors.codice_pod && <p className="mt-1 text-sm text-red-600">{errors.codice_pod}</p>}
-                </div>
-              )}
-              {(formData.tipo_fornitura === 'gas' || formData.tipo_fornitura === 'dual') && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Codice PDR (Gas) <span className="text-slate-400 font-normal">- opzionale</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.codice_pdr}
-                    onChange={(e) => updateFormData({ codice_pdr: e.target.value })}
-                    className="input-field"
-                    placeholder="14 cifre"
-                  />
-                  {errors.codice_pdr && <p className="mt-1 text-sm text-red-600">{errors.codice_pdr}</p>}
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Fornitore Attuale <span className="text-slate-400 font-normal">- opzionale</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.fornitore_attuale}
-                  onChange={(e) => updateFormData({ fornitore_attuale: e.target.value })}
-                  className="input-field"
-                  placeholder="Es. Enel, Eni, A2A..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Note */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Note aggiuntive <span className="text-slate-400 font-normal">- opzionale</span>
-            </label>
-            <textarea
-              value={formData.note_cliente}
-              onChange={(e) => updateFormData({ note_cliente: e.target.value })}
-              className="input-field resize-none"
-              rows={3}
-              placeholder="Eventuali richieste o informazioni aggiuntive..."
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Nome *</label>
+            <input
+              type="text"
+              placeholder="Mario"
+              value={nome}
+              onChange={e => {
+                setNome(e.target.value)
+                setErrors(prev => ({ ...prev, nome: null }))
+              }}
+              className="input-field"
             />
+            {errors.nome && <p className="mt-1 text-sm text-red-600">{errors.nome}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Cognome *</label>
+            <input
+              type="text"
+              placeholder="Rossi"
+              value={cognome}
+              onChange={e => {
+                setCognome(e.target.value)
+                setErrors(prev => ({ ...prev, cognome: null }))
+              }}
+              className="input-field"
+            />
+            {errors.cognome && <p className="mt-1 text-sm text-red-600">{errors.cognome}</p>}
+          </div>
+        </div>
+
+        {/* INDIRIZZO */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <MapPin className="inline w-4 h-4 mr-1" />
+            Indirizzo fornitura
+          </label>
+          <input
+            type="text"
+            placeholder="Via/Piazza, numero civico"
+            value={indirizzo}
+            onChange={e => setIndirizzo(e.target.value)}
+            className="input-field"
+          />
+        </div>
+
+        {/* CAP → CITTÀ → PROVINCIA */}
+        <div className="space-y-4">
+          {/* CAP */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">CAP</label>
+            <input
+              type="text"
+              placeholder="es. 80100"
+              value={cap}
+              onChange={e => handleCapChange(e.target.value.replace(/\D/g, '').slice(0, 5))}
+              className="input-field"
+              maxLength={5}
+            />
+
+            {/* Avviso CAP non trovato */}
+            {capNonTrovato && (
+              <p className="mt-2 text-sm text-amber-600">
+                ⚠️ CAP non riconosciuto. Inserisci la città manualmente.
+              </p>
+            )}
+
+            {/* Lista suggerimenti */}
+            {suggerimentiCap.length > 1 && (
+              <div className="mt-2 border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <p className="px-3 py-2 text-xs text-slate-500 bg-slate-50 border-b">
+                  Seleziona la tua città:
+                </p>
+                {suggerimentiCap.map((comune, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSelezionaCitta(comune)}
+                    className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-slate-100 last:border-0 flex justify-between items-center"
+                  >
+                    <span className="font-medium text-slate-800">{comune.nome}</span>
+                    <span className="text-sm text-slate-500 bg-slate-100 px-2 py-1 rounded">{comune.provincia}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-              {errors.submit}
+          {/* CITTÀ E PROVINCIA */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Città</label>
+              <input
+                type="text"
+                placeholder="Napoli"
+                value={citta}
+                onChange={e => handleCittaChange(e.target.value)}
+                className="input-field"
+              />
             </div>
-          )}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Provincia</label>
+              <input
+                type="text"
+                placeholder="NA"
+                value={provincia}
+                onChange={e => setProvincia(e.target.value.toUpperCase().slice(0, 2))}
+                className="input-field uppercase text-center font-mono font-bold"
+                maxLength={2}
+                readOnly={!!provincia && !!citta}
+              />
+            </div>
+          </div>
+        </div>
 
-          <button type="submit" className="btn-primary w-full">
-            Invia richiesta offerta
-          </button>
-        </form>
+        {/* NOTE */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">
+            Note aggiuntive <span className="text-slate-400 font-normal">(facoltativo)</span>
+          </label>
+          <textarea
+            placeholder="Eventuali richieste o informazioni utili..."
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            className="input-field resize-none"
+            rows={3}
+          />
+        </div>
+
+        {/* PRIVACY */}
+        <div className="bg-slate-50 rounded-xl p-4 space-y-3">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={privacyAccettata}
+              onChange={e => {
+                setPrivacyAccettata(e.target.checked)
+                setErrors(prev => ({ ...prev, privacy: null }))
+              }}
+              className="mt-1 w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-slate-700">
+              Accetto l'<a href="/privacy" target="_blank" className="text-blue-600 underline">informativa sulla privacy</a> *
+            </span>
+          </label>
+          {errors.privacy && <p className="text-sm text-red-600">{errors.privacy}</p>}
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={marketingAccettato}
+              onChange={e => setMarketingAccettato(e.target.checked)}
+              className="mt-1 w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-slate-700">
+              Acconsento a ricevere comunicazioni commerciali
+            </span>
+          </label>
+        </div>
+
+      </div>
+
+      {/* NAVIGAZIONE */}
+      <div className="flex gap-4">
+        <button onClick={onPrev} className="btn-secondary flex items-center gap-2">
+          <ChevronLeft className="w-5 h-5" /> Indietro
+        </button>
+        <button onClick={handleNext} className="btn-primary flex-1 flex items-center justify-center gap-2">
+          Invia richiesta <ChevronRight className="w-5 h-5" />
+        </button>
       </div>
     </motion.div>
   )
