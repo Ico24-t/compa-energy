@@ -15,8 +15,8 @@ const CONSUMI_GAS = {
   acqua_calda: 1800
 }
 
-const Step2Consumption = ({ onNext, onPrev }) => {
-  const { formData, updateFormData } = useForm()
+const Step2Consumption = () => {
+  const { formData, updateFormData, nextStep, prevStep } = useForm()
 
   const [tipoFornitura, setTipoFornitura] = useState(formData.tipo_fornitura || '')
   const [persone, setPersone] = useState(formData.persone_casa || 2)
@@ -78,7 +78,7 @@ const Step2Consumption = ({ onNext, onPrev }) => {
       email
     })
 
-    onNext()
+    nextStep()
   }
 
   return (
@@ -284,7 +284,7 @@ const Step2Consumption = ({ onNext, onPrev }) => {
 
       {/* NAVIGAZIONE */}
       <div className="flex gap-4">
-        <button onClick={onPrev} className="btn-secondary flex items-center gap-2">
+        <button onClick={prevStep} className="btn-secondary flex items-center gap-2">
           <ChevronLeft className="w-5 h-5" /> Indietro
         </button>
         <button onClick={handleNext} className="btn-primary flex-1 flex items-center justify-center gap-2">
