@@ -6,8 +6,8 @@ import { getAvailableOffers, saveConsumption, updateLeadStatus } from '../servic
 import { findBestOffer, calculateSavings, formatCurrency } from '../utils/calculations'
 import { validatePhone, formatPhone } from '../utils/validation'
 
-const Step3OfferCalculation = ({ onNext, onPrev }) => {
-  const { formData, updateFormData } = useForm()
+const Step3OfferCalculation = () => {
+  const { formData, updateFormData, nextStep, prevStep } = useForm()
 
   const [loading, setLoading] = useState(true)
   const [conveniente, setConveniente] = useState(null)
@@ -85,7 +85,7 @@ const Step3OfferCalculation = ({ onNext, onPrev }) => {
       return
     }
     updateFormData({ telefono: formatPhone(telefono) })
-    onNext()
+    nextStep()
   }
 
   // LOADING
@@ -145,7 +145,7 @@ const Step3OfferCalculation = ({ onNext, onPrev }) => {
           </p>
         </div>
 
-        <button onClick={onPrev} className="btn-secondary w-full flex items-center justify-center gap-2">
+        <button onClick={prevStep} className="btn-secondary w-full flex items-center justify-center gap-2">
           <ChevronLeft className="w-5 h-5" /> Torna indietro
         </button>
       </motion.div>
@@ -243,7 +243,7 @@ const Step3OfferCalculation = ({ onNext, onPrev }) => {
 
       {/* Navigazione */}
       <div className="flex gap-4">
-        <button onClick={onPrev} className="btn-secondary flex items-center gap-2">
+        <button onClick={prevStep} className="btn-secondary flex items-center gap-2">
           <ChevronLeft className="w-5 h-5" /> Indietro
         </button>
         <button onClick={handleNext} className="btn-primary flex-1 flex items-center justify-center gap-2">
