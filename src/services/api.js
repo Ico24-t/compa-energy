@@ -21,7 +21,7 @@ export const createLead = async (leadData) => {
         campagna_utm: leadData.campagna_utm,
         medium_utm: leadData.medium_utm,
         user_agent: navigator.userAgent,
-        ip_address: leadData.ip_address
+        ip_address: leadData.ip_address || null
       }])
       .select()
       .single()
@@ -118,14 +118,16 @@ export const getAvailableOffers = async (filters = {}) => {
           importo_fisso,
           percentuale,
           bonus_dual,
-          bonus_verde
+          bonus_verde,
+          bonus_attivazione_rapida,
+          minimo_garantito,
+          massimo
         )
       `)
       .eq('visibile', true)
       .lte('data_inizio', new Date().toISOString().split('T')[0])
       .or(`data_fine.is.null,data_fine.gte.${new Date().toISOString().split('T')[0]}`)
 
-    // Applica filtri
     if (filters.tipo_fornitura) {
       query = query.eq('tipo_fornitura', filters.tipo_fornitura)
     }
@@ -133,7 +135,6 @@ export const getAvailableOffers = async (filters = {}) => {
     query = query.order('priorita_visualizzazione', { ascending: false })
 
     const { data, error } = await query
-
     if (error) throw error
     return { success: true, data: data || [] }
   } catch (error) {
@@ -164,7 +165,9 @@ export const getOfferById = async (offerId) => {
           percentuale,
           bonus_dual,
           bonus_verde,
-          bonus_attivazione_rapida
+          bonus_attivazione_rapida,
+          minimo_garantito,
+          massimo
         )
       `)
       .eq('id', offerId)
@@ -239,16 +242,44 @@ export const updatePreContract = async (contractId, updates) => {
 }
 
 /**
+ * Aggiorna lo stato del pre-contratto a 'inviato' con data e ora di invio
+ * Da chiamare al completamento dello Step6
+ *
+ * @param {string} leadId - ID del lead
+ */
+export const markPreContractAsSent = async (leadId) => {
+  try {
+    const now = new Date().toISOString()
+
+    const { data, error } = await supabase
+      .from('pre_contratti')
+      .update({
+        stato: 'inviato',
+        data_invio: now,
+        updated_at: now
+      })
+      .eq('lead_id', leadId)
+      .select()
+
+    if (error) throw error
+    return { success: true, data }
+  } catch (error) {
+    console.error('Errore aggiornamento stato pre-contratto:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
  * UTILITIES - Funzioni di supporto
  */
 
 export const trackDeviceInfo = () => {
   const ua = navigator.userAgent
   let dispositivo = 'desktop'
-  
+
   if (/mobile/i.test(ua)) dispositivo = 'mobile'
   else if (/tablet/i.test(ua)) dispositivo = 'tablet'
-  
+
   return {
     dispositivo,
     user_agent: ua
