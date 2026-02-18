@@ -3,17 +3,10 @@ import { CheckCircle, Mail, Phone, FileText, Loader } from 'lucide-react'
 import { useForm } from '../contexts/FormContext'
 import { motion } from 'framer-motion'
 import { sendBothEmails } from '../services/emailService'
-import { updateLeadStatus } from '../services/api'
+import { updateLeadStatus, markPreContractAsSent } from '../services/api'
 
 const Step6Confirmation = () => {
   const { formData, leadCode, leadId, resetForm } = useForm()
-  useEffect(() => {
-  console.log('=== DEBUG EMAILJS ===')
-  console.log('Service ID:', import.meta.env.VITE_EMAILJS_SERVICE_ID)
-  console.log('Template Cliente:', import.meta.env.VITE_EMAILJS_TEMPLATE_ID_CLIENTE)
-  console.log('Template Azienda:', import.meta.env.VITE_EMAILJS_TEMPLATE_ID_AZIENDA)
-  console.log('Public Key:', import.meta.env.VITE_EMAILJS_PUBLIC_KEY ? 'SET' : 'MISSING')
-}, [])
   const [sending, setSending] = useState(true)
   const [emailsSent, setEmailsSent] = useState(false)
 
@@ -23,17 +16,35 @@ const Step6Confirmation = () => {
 
   const sendConfirmationEmails = async () => {
     try {
+      const offerta = formData.offerta_selezionata || {}
+      const calcolo = formData.calcolo_risparmio || {}
+
       const emailData = {
         ...formData,
         codice_univoco: leadCode,
-        fornitore_nome: formData.offerta_selezionata?.fornitori?.nome,
-        descrizione_offerta: formData.offerta_selezionata?.descrizione_completa,
-        ...formData.calcolo_risparmio
+        fornitore_nome: offerta.fornitori?.nome || '',
+        nome_offerta: offerta.nome_offerta || '',
+        descrizione_offerta: offerta.descrizione_completa || offerta.descrizione_breve || '',
+        // Campi calcolo esplicitati per i template
+        risparmio_annuo: calcolo.risparmio_annuo || 0,
+        risparmio_mensile: calcolo.risparmio_mensile || 0,
+        risparmio_percentuale: calcolo.risparmio_percentuale || 0,
+        spesa_annua_attuale: calcolo.spesa_annua_attuale || 0,
+        spesa_mensile_attuale_calc: calcolo.spesa_mensile_attuale || parseFloat(formData.spesa_mensile_attuale) || 0,
+        spesa_annua_offerta: calcolo.spesa_annua_offerta || 0,
+        spesa_mensile_offerta: calcolo.spesa_mensile_offerta || 0,
+        tua_commissione: calcolo.tua_commissione || 0
       }
 
+      // Invia entrambe le email
       await sendBothEmails(emailData)
+
+      // Aggiorna stato lead
       await updateLeadStatus(leadId, 'inviato_operatore')
-      
+
+      // ✅ FIX: Aggiorna stato pre-contratto a 'inviato' con data_invio
+      await markPreContractAsSent(leadId)
+
       setEmailsSent(true)
     } catch (error) {
       console.error('Errore invio email:', error)
@@ -83,7 +94,7 @@ const Step6Confirmation = () => {
         {/* Prossimi passi */}
         <div className="text-left space-y-4 mb-8">
           <h3 className="text-xl font-bold text-slate-900 mb-4 text-center">Cosa succede ora?</h3>
-          
+
           <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
             <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold">
               1
@@ -137,10 +148,7 @@ const Step6Confirmation = () => {
           <p className="text-sm text-slate-600">{import.meta.env.VITE_OPERATOR_EMAIL}</p>
         </div>
 
-        <button
-          onClick={resetForm}
-          className="btn-secondary w-full"
-        >
+        <button onClick={resetForm} className="btn-secondary w-full">
           Nuova richiesta
         </button>
       </div>
