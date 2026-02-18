@@ -47,7 +47,7 @@ const Step1ClientType = () => {
     >
       <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-display font-bold text-slate-900 mb-3">
-          Iniziamo! 👋
+          Iniziamo! 
         </h1>
         <p className="text-lg text-slate-600">
           Sei un privato o un'azienda?
