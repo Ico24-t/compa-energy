@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Phone, TrendingDown, Check, X, Loader } from 'lucide-react'
+import { Phone, Check, X, Loader, Info } from 'lucide-react'
 import { useForm } from '../contexts/FormContext'
 import { motion } from 'framer-motion'
 import { getAvailableOffers, updateLeadStatus } from '../services/api'
@@ -12,6 +12,7 @@ const Step3OfferCalculation = () => {
   const [noImprovement, setNoImprovement] = useState(false)
   const [phone, setPhone] = useState(formData.telefono || '')
   const [phoneError, setPhoneError] = useState('')
+  const [showBreakdown, setShowBreakdown] = useState(false)
 
   useEffect(() => {
     calculateOffers()
@@ -25,17 +26,22 @@ const Step3OfferCalculation = () => {
       })
 
       if (offersResult.success && offersResult.data.length > 0) {
-        const consumption = {
+        const consumi = {
           consumo_annuo_kwh: parseFloat(formData.consumo_annuo_kwh) || 0,
           consumo_annuo_smc: parseFloat(formData.consumo_annuo_smc) || 0
         }
-        
+
         const currentCost = {
           spesa_mensile_attuale: parseFloat(formData.spesa_mensile_attuale),
           spesa_annua_attuale: parseFloat(formData.spesa_mensile_attuale) * 12
         }
 
-        const best = findBestOffer(offersResult.data, consumption, currentCost)
+        const best = findBestOffer(
+          offersResult.data,
+          consumi,
+          currentCost,
+          formData.tipo_cliente || 'privato'
+        )
 
         if (best && !isCurrentOfferGood(best.calculation)) {
           setBestOffer(best)
@@ -65,11 +71,11 @@ const Step3OfferCalculation = () => {
 
     const formattedPhone = formatPhone(phone)
     updateFormData({ telefono: formattedPhone })
-    
+
     await updateLeadStatus(leadId, 'telefono_richiesto', {
       telefono: formattedPhone
     })
-    
+
     nextStep()
   }
 
@@ -112,6 +118,9 @@ const Step3OfferCalculation = () => {
 
   if (!bestOffer) return null
 
+  const calc = bestOffer.calculation
+  const dettaglio = calc.dettaglio_offerta
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -126,37 +135,129 @@ const Step3OfferCalculation = () => {
         <p className="text-sm opacity-90">Valida per le prossime 48 ore</p>
         <div className="mt-4 bg-white/20 backdrop-blur rounded-xl p-4">
           <p className="text-sm font-medium mb-1">Risparmio annuo stimato</p>
-          <p className="text-4xl font-bold">
-            {formatCurrency(bestOffer.calculation.risparmio_annuo)}
-          </p>
-          <p className="text-sm mt-1">
-            (-{bestOffer.calculation.risparmio_percentuale.toFixed(1)}%)
+          <p className="text-4xl font-bold">{formatCurrency(calc.risparmio_annuo)}</p>
+          <p className="text-sm mt-1">(-{calc.risparmio_percentuale.toFixed(1)}%)</p>
+          <p className="text-xs mt-2 opacity-80">
+            ovvero {formatCurrency(calc.risparmio_mensile)} al mese
           </p>
         </div>
       </div>
 
-      {/* Confronto costi */}
+      {/* Confronto spesa */}
       <div className="card mb-6">
         <h3 className="text-lg font-bold text-slate-900 mb-4">Confronto spesa annua</h3>
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-4 bg-red-50 rounded-xl">
             <X className="w-6 h-6 text-red-600 mx-auto mb-2" />
             <p className="text-sm text-slate-600 mb-1">Spesa attuale</p>
-            <p className="text-2xl font-bold text-red-600">
-              {formatCurrency(bestOffer.calculation.spesa_annua_attuale)}
-            </p>
+            <p className="text-2xl font-bold text-red-600">{formatCurrency(calc.spesa_annua_attuale)}</p>
+            <p className="text-xs text-slate-500 mt-1">{formatCurrency(calc.spesa_mensile_attuale)}/mese</p>
           </div>
           <div className="text-center p-4 bg-green-50 rounded-xl">
             <Check className="w-6 h-6 text-green-600 mx-auto mb-2" />
-            <p className="text-sm text-slate-600 mb-1">Nuova spesa</p>
-            <p className="text-2xl font-bold text-green-600">
-              {formatCurrency(bestOffer.calculation.spesa_annua_offerta)}
-            </p>
+            <p className="text-sm text-slate-600 mb-1">Nuova spesa stimata</p>
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(calc.spesa_annua_offerta)}</p>
+            <p className="text-xs text-slate-500 mt-1">{formatCurrency(calc.spesa_mensile_offerta)}/mese</p>
           </div>
         </div>
       </div>
 
-      {/* Dettagli offerta (senza logo fornitore) */}
+      {/* Breakdown calcolo dettagliato */}
+      {dettaglio && (
+        <div className="card mb-6">
+          <button
+            type="button"
+            onClick={() => setShowBreakdown(!showBreakdown)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Info className="w-5 h-5 text-blue-500" />
+              Come è calcolata la nuova spesa?
+            </h3>
+            <span className="text-blue-600 text-sm font-medium">
+              {showBreakdown ? 'Nascondi ▲' : 'Mostra dettaglio ▼'}
+            </span>
+          </button>
+
+          {showBreakdown && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mt-4 space-y-2 border-t border-slate-100 pt-4"
+            >
+              <p className="text-xs text-slate-500 mb-3">
+                Il calcolo si basa sui consumi medi stimati ARERA per {formData.num_persone} {formData.num_persone === '1' ? 'persona' : 'persone'} e include IVA e oneri di sistema.
+              </p>
+
+              <div className="space-y-2 text-sm">
+                {/* Costo energia */}
+                {(formData.tipo_fornitura === 'luce' || formData.tipo_fornitura === 'dual') && (
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span className="text-slate-600">
+                      ⚡ Energia luce ({formData.consumo_annuo_kwh} kWh × {bestOffer.prezzo_kwh?.toFixed(4)} €/kWh)
+                    </span>
+                    <span className="font-semibold">
+                      {formatCurrency((parseFloat(formData.consumo_annuo_kwh) || 0) * (parseFloat(bestOffer.prezzo_kwh) || 0))}
+                    </span>
+                  </div>
+                )}
+                {(formData.tipo_fornitura === 'gas' || formData.tipo_fornitura === 'dual') && (
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span className="text-slate-600">
+                      🔥 Energia gas ({formData.consumo_annuo_smc} Smc × {bestOffer.prezzo_smc?.toFixed(4)} €/Smc)
+                    </span>
+                    <span className="font-semibold">
+                      {formatCurrency((parseFloat(formData.consumo_annuo_smc) || 0) * (parseFloat(bestOffer.prezzo_smc) || 0))}
+                    </span>
+                  </div>
+                )}
+
+                {/* Quota fissa */}
+                {dettaglio.quotaFissa > 0 && (
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span className="text-slate-600">📋 Quota fissa annua</span>
+                    <span className="font-semibold">{formatCurrency(dettaglio.quotaFissa)}</span>
+                  </div>
+                )}
+
+                {/* Oneri sistema */}
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-600">🏛️ Oneri di sistema (stimati)</span>
+                  <span className="font-semibold">{formatCurrency(dettaglio.oneriSistema)}</span>
+                </div>
+
+                {/* Bonus attivazione */}
+                {dettaglio.bonusAttivazione > 0 && (
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span className="text-green-600">🎁 Bonus attivazione</span>
+                    <span className="font-semibold text-green-600">- {formatCurrency(dettaglio.bonusAttivazione)}</span>
+                  </div>
+                )}
+
+                {/* IVA */}
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-600">
+                    🧾 IVA ({(dettaglio.aliquotaIva * 100).toFixed(0)}%)
+                  </span>
+                  <span className="font-semibold">{formatCurrency(dettaglio.iva)}</span>
+                </div>
+
+                {/* Totale */}
+                <div className="flex justify-between items-center py-3 bg-green-50 rounded-lg px-3 mt-2">
+                  <span className="font-bold text-slate-900">Totale annuo stimato</span>
+                  <span className="font-bold text-green-600 text-lg">{formatCurrency(calc.spesa_annua_offerta)}</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-400 mt-3">
+                * I valori sono stime basate su consumi medi. La spesa effettiva dipenderà dai consumi reali e dalle condizioni di mercato.
+              </p>
+            </motion.div>
+          )}
+        </div>
+      )}
+
+      {/* Dettagli offerta */}
       <div className="card mb-6">
         <h3 className="text-lg font-bold text-slate-900 mb-4">Dettagli dell'offerta</h3>
         <div className="space-y-3">
