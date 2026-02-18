@@ -238,7 +238,7 @@ const Step5PersonalData = () => {
           )}
 
           <button type="submit" className="btn-primary w-full text-lg">
-            Invia richiesta offerta
+            Invia e Ottieni l'offerta
           </button>
         </form>
       </div>
