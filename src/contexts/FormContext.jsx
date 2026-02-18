@@ -5,95 +5,96 @@ const FormContext = createContext()
 
 export const useForm = () => {
   const context = useContext(FormContext)
-  if (!context) {
-    throw new Error('useForm deve essere usato all\'interno di FormProvider')
-  }
+  if (!context) throw new Error('useForm deve essere usato all\'interno di FormProvider')
   return context
 }
+
+const INITIAL_FORM_DATA = () => ({
+  // Step 1
+  tipo_cliente: '',
+
+  // Step 2
+  tipo_fornitura: '',
+  num_persone: '',
+  potenza_contrattuale: '',
+  consumo_annuo_kwh: '',
+  consumo_annuo_smc: '',
+  spesa_mensile_attuale: '',
+  tipo_tariffa: 'monoraria',
+  email: '',
+
+  // Step 3
+  telefono: '',
+
+  // Step 4 (popolato dal sistema)
+  offerta_selezionata: null,
+  calcolo_risparmio: null,
+
+  // Step 5
+  nome: '',
+  cognome: '',
+  codice_fiscale: '',
+  indirizzo_fornitura: '',
+  cap: '',
+  citta: '',
+  provincia: '',
+  codice_pod: '',
+  codice_pdr: '',
+  fornitore_attuale: '',
+  tipo_contratto_attuale: '',
+  note_cliente: '',
+
+  // Privacy
+  privacy_acconsentito: false,
+  marketing_acconsentito: false,
+
+  // Tracking
+  ...trackDeviceInfo(),
+  ...getUTMParams(),
+  origine: 'form_manuale'
+})
 
 export const FormProvider = ({ children }) => {
   const [currentStep, setCurrentStep] = useState(1)
   const [leadId, setLeadId] = useState(null)
   const [leadCode, setLeadCode] = useState(null)
-  
-  const [formData, setFormData] = useState({
-    // Step 1 - Tipo cliente
-    tipo_cliente: '',
-    
-    // Step 2 - Consumi e contatti
-    tipo_fornitura: '',
-    potenza_contrattuale: '',
-    consumo_annuo_kwh: '',
-    consumo_annuo_smc: '',
-    spesa_mensile_attuale: '',
-    tipo_tariffa: 'monoraria',
-    email: '',
-    
-    // Step 3 - Telefono
-    telefono: '',
-    
-    // Step 4 - Offerta selezionata (viene popolato dal sistema)
-    offerta_selezionata: null,
-    calcolo_risparmio: null,
-    
-    // Step 5 - Dati anagrafici
-    nome: '',
-    cognome: '',
-    codice_fiscale: '',
-    data_nascita: '',
-    luogo_nascita: '',
-    indirizzo_fornitura: '',
-    cap: '',
-    citta: '',
-    provincia: '',
-    codice_pod: '',
-    codice_pdr: '',
-    fornitore_attuale: '',
-    note_cliente: '',
-    
-    // Privacy
-    privacy_acconsentito: false,
-    marketing_acconsentito: false,
-    
-    // Tracking
-    ...trackDeviceInfo(),
-    ...getUTMParams(),
-    origine: 'form_manuale'
-  })
-
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Salva stato nel localStorage per recupero in caso di refresh
+  // Recupera dati salvati dal localStorage al mount
   useEffect(() => {
-    const savedData = localStorage.getItem('comparatore_form_data')
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData)
-        setFormData(prev => ({ ...prev, ...parsed }))
+    try {
+      const saved = localStorage.getItem('eutenti_form_data')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setFormData(prev => ({ ...prev, ...parsed.formData }))
         setCurrentStep(parsed.currentStep || 1)
         setLeadId(parsed.leadId || null)
         setLeadCode(parsed.leadCode || null)
-      } catch (e) {
-        console.error('Errore recupero dati salvati:', e)
       }
+    } catch (e) {
+      console.error('Errore recupero dati salvati:', e)
+      localStorage.removeItem('eutenti_form_data')
     }
   }, [])
 
+  // Salva nel localStorage ad ogni modifica
   useEffect(() => {
-    localStorage.setItem('comparatore_form_data', JSON.stringify({
-      ...formData,
-      currentStep,
-      leadId,
-      leadCode
-    }))
+    try {
+      localStorage.setItem('eutenti_form_data', JSON.stringify({
+        formData,
+        currentStep,
+        leadId,
+        leadCode
+      }))
+    } catch (e) {
+      console.error('Errore salvataggio dati:', e)
+    }
   }, [formData, currentStep, leadId, leadCode])
 
   const updateFormData = (data) => {
-    setFormData(prev => ({
-      ...prev,
-      ...data
-    }))
+    setFormData(prev => ({ ...prev, ...data }))
   }
 
   const nextStep = () => {
@@ -111,42 +112,18 @@ export const FormProvider = ({ children }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  // ✅ FIX: Reset completo — pulisce localStorage e riporta allo step 1
   const resetForm = () => {
-    setFormData({
-      tipo_cliente: '',
-      tipo_fornitura: '',
-      potenza_contrattuale: '',
-      consumo_annuo_kwh: '',
-      consumo_annuo_smc: '',
-      spesa_mensile_attuale: '',
-      tipo_tariffa: 'monoraria',
-      email: '',
-      telefono: '',
-      offerta_selezionata: null,
-      calcolo_risparmio: null,
-      nome: '',
-      cognome: '',
-      codice_fiscale: '',
-      data_nascita: '',
-      luogo_nascita: '',
-      indirizzo_fornitura: '',
-      cap: '',
-      citta: '',
-      provincia: '',
-      codice_pod: '',
-      codice_pdr: '',
-      fornitore_attuale: '',
-      note_cliente: '',
-      privacy_acconsentito: false,
-      marketing_acconsentito: false,
-      ...trackDeviceInfo(),
-      ...getUTMParams(),
-      origine: 'form_manuale'
-    })
+    const freshData = INITIAL_FORM_DATA()
+    setFormData(freshData)
     setCurrentStep(1)
     setLeadId(null)
     setLeadCode(null)
-    localStorage.removeItem('comparatore_form_data')
+    setError(null)
+    setLoading(false)
+    try {
+      localStorage.removeItem('eutenti_form_data')
+    } catch {}
   }
 
   const value = {
