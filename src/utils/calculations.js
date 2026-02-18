@@ -1,38 +1,134 @@
 /**
- * Calcola il risparmio annuo confrontando offerta attuale con nuova offerta
+ * STIME CONSUMI ARERA PER NUMERO PERSONE IN FAMIGLIA
+ * Fonte: ARERA - Autorità di Regolazione per Energia Reti e Ambiente
  */
-export const calculateSavings = (currentCost, offerDetails, consumption) => {
+export const CONSUMI_ARERA = {
+  1: { kwh: 1200, smc: 400 },
+  2: { kwh: 1800, smc: 700 },
+  3: { kwh: 2500, smc: 900 },
+  4: { kwh: 3200, smc: 1100 },
+  5: { kwh: 4000, smc: 1400 }
+}
+
+/**
+ * ONERI DI SISTEMA MEDI STIMATI (€/anno)
+ * Comprendono: oneri generali di sistema, trasporto e gestione contatore
+ * Fonte: stime medie mercato italiano 2026
+ */
+const ONERI_SISTEMA = {
+  luce: 180,  // €/anno medi per uso domestico 3kW
+  gas: 120,   // €/anno medi per uso domestico
+  dual: 300   // €/anno medi combinati
+}
+
+/**
+ * IVA applicabile per tipo cliente
+ */
+const ALIQUOTA_IVA = {
+  privato: 0.10,   // 10% domestico
+  p_iva: 0.22,     // 22% non domestico
+  azienda: 0.22    // 22% non domestico
+}
+
+/**
+ * Restituisce la stima dei consumi annui in base al numero di persone
+ * @param {number|string} numPersone - Numero persone (1-5, dove 5 = 5+)
+ * @returns {{ kwh: number, smc: number }}
+ */
+export const stimaConsumiDaPersone = (numPersone) => {
+  const n = Math.min(parseInt(numPersone) || 2, 5)
+  return CONSUMI_ARERA[n] || CONSUMI_ARERA[2]
+}
+
+/**
+ * Calcola il costo annuo stimato con la nuova offerta
+ * Include: energia variabile + quota fissa + oneri sistema stimati + IVA
+ *
+ * @param {object} offerta - Dati offerta dal DB
+ * @param {object} consumi - { consumo_annuo_kwh, consumo_annuo_smc }
+ * @param {string} tipoCliente - 'privato' | 'p_iva' | 'azienda'
+ * @returns {object} dettaglio costi
+ */
+export const calcolaCostoOfferta = (offerta, consumi, tipoCliente = 'privato') => {
+  const iva = ALIQUOTA_IVA[tipoCliente] || 0.10
+  let costoEnergia = 0
+  let quotaFissa = 0
+  let oneri = 0
+
+  if (offerta.tipo_fornitura === 'luce' || offerta.tipo_fornitura === 'dual') {
+    const kwh = parseFloat(consumi.consumo_annuo_kwh) || 0
+    costoEnergia += kwh * (parseFloat(offerta.prezzo_kwh) || 0)
+    quotaFissa += (parseFloat(offerta.quota_fissa_luce_mensile) || 0) * 12
+    oneri += offerta.tipo_fornitura === 'dual' ? ONERI_SISTEMA.dual : ONERI_SISTEMA.luce
+  }
+
+  if (offerta.tipo_fornitura === 'gas' || offerta.tipo_fornitura === 'dual') {
+    const smc = parseFloat(consumi.consumo_annuo_smc) || 0
+    costoEnergia += smc * (parseFloat(offerta.prezzo_smc) || 0)
+    quotaFissa += (parseFloat(offerta.quota_fissa_gas_mensile) || 0) * 12
+    // Oneri già inclusi nel dual sopra, aggiungi solo per gas puro
+    if (offerta.tipo_fornitura === 'gas') {
+      oneri += ONERI_SISTEMA.gas
+    }
+  }
+
+  // Sottrai bonus attivazione (spalmato sul primo anno)
+  const bonusAttivazione = parseFloat(offerta.bonus_attivazione) || 0
+
+  // Imponibile prima di IVA
+  const imponibile = costoEnergia + quotaFissa + oneri - bonusAttivazione
+
+  // IVA sul solo imponibile energetico (quota fissa + energia), non sugli oneri generali
+  // Per semplicità applichiamo IVA su energia + quota fissa
+  const baseIva = costoEnergia + quotaFissa
+  const importoIva = baseIva * iva
+
+  const totaleAnnuo = Math.max(0, imponibile + importoIva)
+
+  return {
+    costoEnergia: parseFloat(costoEnergia.toFixed(2)),
+    quotaFissa: parseFloat(quotaFissa.toFixed(2)),
+    oneriSistema: parseFloat(oneri.toFixed(2)),
+    bonusAttivazione: parseFloat(bonusAttivazione.toFixed(2)),
+    imponibile: parseFloat(imponibile.toFixed(2)),
+    iva: parseFloat(importoIva.toFixed(2)),
+    aliquotaIva: iva,
+    totaleAnnuo: parseFloat(totaleAnnuo.toFixed(2)),
+    totaleMensile: parseFloat((totaleAnnuo / 12).toFixed(2))
+  }
+}
+
+/**
+ * Calcola il risparmio annuo confrontando spesa attuale con nuova offerta
+ *
+ * @param {object} currentCost - { spesa_mensile_attuale, spesa_annua_attuale }
+ * @param {object} offerta - Dati offerta dal DB
+ * @param {object} consumi - { consumo_annuo_kwh, consumo_annuo_smc }
+ * @param {string} tipoCliente - 'privato' | 'p_iva' | 'azienda'
+ * @returns {object} calcolo completo
+ */
+export const calculateSavings = (currentCost, offerta, consumi, tipoCliente = 'privato') => {
   try {
-    // Calcola costo annuo con la nuova offerta
-    let newAnnualCost = 0
+    const spesaAttuale = parseFloat(currentCost.spesa_annua_attuale) ||
+      (parseFloat(currentCost.spesa_mensile_attuale) * 12)
 
-    if (offerDetails.tipo_fornitura === 'luce' || offerDetails.tipo_fornitura === 'dual') {
-      const kwhCost = (consumption.consumo_annuo_kwh || 0) * (offerDetails.prezzo_kwh || 0)
-      const fixedCostLuce = (offerDetails.quota_fissa_luce_mensile || 0) * 12
-      newAnnualCost += kwhCost + fixedCostLuce
-    }
+    const dettaglioOfferta = calcolaCostoOfferta(offerta, consumi, tipoCliente)
+    const spesaNuova = dettaglioOfferta.totaleAnnuo
 
-    if (offerDetails.tipo_fornitura === 'gas' || offerDetails.tipo_fornitura === 'dual') {
-      const smcCost = (consumption.consumo_annuo_smc || 0) * (offerDetails.prezzo_smc || 0)
-      const fixedCostGas = (offerDetails.quota_fissa_gas_mensile || 0) * 12
-      newAnnualCost += smcCost + fixedCostGas
-    }
-
-    // Sottrai bonus attivazione se presente
-    if (offerDetails.bonus_attivazione) {
-      newAnnualCost -= offerDetails.bonus_attivazione
-    }
-
-    const currentAnnualCost = currentCost.spesa_annua_attuale || (currentCost.spesa_mensile_attuale * 12)
-    const savings = currentAnnualCost - newAnnualCost
-    const savingsPercentage = currentAnnualCost > 0 ? (savings / currentAnnualCost) * 100 : 0
+    const risparmio = spesaAttuale - spesaNuova
+    const risparmioPercentuale = spesaAttuale > 0 ? (risparmio / spesaAttuale) * 100 : 0
 
     return {
-      spesa_annua_attuale: parseFloat(currentAnnualCost.toFixed(2)),
-      spesa_annua_offerta: parseFloat(newAnnualCost.toFixed(2)),
-      risparmio_annuo: parseFloat(savings.toFixed(2)),
-      risparmio_percentuale: parseFloat(savingsPercentage.toFixed(2)),
-      conveniente: savings > 0
+      spesa_annua_attuale: parseFloat(spesaAttuale.toFixed(2)),
+      spesa_mensile_attuale: parseFloat((spesaAttuale / 12).toFixed(2)),
+      spesa_annua_offerta: spesaNuova,
+      spesa_mensile_offerta: dettaglioOfferta.totaleMensile,
+      risparmio_annuo: parseFloat(risparmio.toFixed(2)),
+      risparmio_mensile: parseFloat((risparmio / 12).toFixed(2)),
+      risparmio_percentuale: parseFloat(risparmioPercentuale.toFixed(2)),
+      conveniente: risparmio > 0,
+      // Breakdown dettagliato per mostrarlo all'utente
+      dettaglio_offerta: dettaglioOfferta
     }
   } catch (error) {
     console.error('Errore calcolo risparmio:', error)
@@ -41,79 +137,120 @@ export const calculateSavings = (currentCost, offerDetails, consumption) => {
 }
 
 /**
- * Calcola la commissione per l'operatore
+ * Calcola la commissione totale per l'operatore
+ * Include tutti i bonus: base + dual + verde + attivazione rapida
+ *
+ * @param {object} offerta - Dati offerta con commissioni[]
+ * @param {object} calculation - Risultato di calculateSavings
+ * @returns {object} { totale, dettaglio }
  */
-export const calculateCommission = (offerDetails, calculation) => {
+export const calculateCommission = (offerta, calculation) => {
   try {
-    const commission = offerDetails.commissioni?.[0]
-    if (!commission) return 0
+    const commission = offerta.commissioni?.[0]
+    if (!commission) return { totale: 0, dettaglio: {} }
 
-    let totalCommission = 0
+    let base = 0
+    let bonusDual = 0
+    let bonusVerde = 0
+    let bonusRapida = 0
 
     // Commissione base
     if (commission.tipo_commissione === 'fissa') {
-      totalCommission = commission.importo_fisso || 0
+      base = parseFloat(commission.importo_fisso) || 0
     } else if (commission.tipo_commissione === 'percentuale') {
-      totalCommission = (calculation.spesa_annua_offerta * (commission.percentuale || 0)) / 100
+      base = ((calculation?.spesa_annua_offerta || 0) * (parseFloat(commission.percentuale) || 0)) / 100
     } else if (commission.tipo_commissione === 'mista') {
-      const fixed = commission.importo_fisso || 0
-      const percentage = (calculation.spesa_annua_offerta * (commission.percentuale || 0)) / 100
-      totalCommission = fixed + percentage
+      const fixed = parseFloat(commission.importo_fisso) || 0
+      const perc = ((calculation?.spesa_annua_offerta || 0) * (parseFloat(commission.percentuale) || 0)) / 100
+      base = fixed + perc
     }
 
-    // Bonus aggiuntivi
-    if (offerDetails.tipo_fornitura === 'dual' && commission.bonus_dual) {
-      totalCommission += commission.bonus_dual
+    // Bonus dual (se offerta dual)
+    if (offerta.tipo_fornitura === 'dual' && commission.bonus_dual) {
+      bonusDual = parseFloat(commission.bonus_dual) || 0
     }
 
-    if (offerDetails.green_energy && commission.bonus_verde) {
-      totalCommission += commission.bonus_verde
+    // Bonus energia verde
+    if (offerta.green_energy && commission.bonus_verde) {
+      bonusVerde = parseFloat(commission.bonus_verde) || 0
     }
+
+    // Bonus attivazione rapida
+    if (commission.bonus_attivazione_rapida) {
+      bonusRapida = parseFloat(commission.bonus_attivazione_rapida) || 0
+    }
+
+    let totale = base + bonusDual + bonusVerde + bonusRapida
 
     // Applica min/max se definiti
-    if (commission.minimo_garantito && totalCommission < commission.minimo_garantito) {
-      totalCommission = commission.minimo_garantito
+    if (commission.minimo_garantito && totale < parseFloat(commission.minimo_garantito)) {
+      totale = parseFloat(commission.minimo_garantito)
+    }
+    if (commission.massimo && totale > parseFloat(commission.massimo)) {
+      totale = parseFloat(commission.massimo)
     }
 
-    if (commission.massimo && totalCommission > commission.massimo) {
-      totalCommission = commission.massimo
+    return {
+      totale: parseFloat(totale.toFixed(2)),
+      dettaglio: {
+        base: parseFloat(base.toFixed(2)),
+        bonus_dual: parseFloat(bonusDual.toFixed(2)),
+        bonus_verde: parseFloat(bonusVerde.toFixed(2)),
+        bonus_rapida: parseFloat(bonusRapida.toFixed(2))
+      }
     }
-
-    return parseFloat(totalCommission.toFixed(2))
   } catch (error) {
     console.error('Errore calcolo commissione:', error)
-    return 0
+    return { totale: 0, dettaglio: {} }
   }
 }
 
 /**
- * Trova la migliore offerta basandosi su risparmio e commissione
+ * Trova la migliore offerta basandosi su risparmio cliente e commissione operatore
+ * Score: 70% risparmio cliente + 30% commissione
+ *
+ * @param {Array} offerte - Lista offerte dal DB
+ * @param {object} consumi - { consumo_annuo_kwh, consumo_annuo_smc }
+ * @param {object} currentCost - { spesa_mensile_attuale, spesa_annua_attuale }
+ * @param {string} tipoCliente - 'privato' | 'p_iva' | 'azienda'
+ * @returns {object|null} migliore offerta con calcoli
  */
-export const findBestOffer = (offers, consumption, currentCost) => {
-  if (!offers || offers.length === 0) return null
+export const findBestOffer = (offerte, consumi, currentCost, tipoCliente = 'privato') => {
+  if (!offerte || offerte.length === 0) return null
 
-  const evaluatedOffers = offers.map(offer => {
-    const calculation = calculateSavings(currentCost, offer, consumption)
-    const commission = calculateCommission(offer, calculation)
+  const valutate = offerte.map(offerta => {
+    const calculation = calculateSavings(currentCost, offerta, consumi, tipoCliente)
+    if (!calculation) return null
+
+    const commissioneResult = calculateCommission(offerta, calculation)
 
     return {
-      ...offer,
-      calculation,
-      commission,
-      score: calculation.risparmio_annuo * 0.7 + commission * 0.3 // 70% risparmio cliente, 30% commissione
+      ...offerta,
+      calculation: {
+        ...calculation,
+        tua_commissione: commissioneResult.totale,
+        dettaglio_commissione: commissioneResult.dettaglio
+      },
+      score: (calculation.risparmio_annuo * 0.7) + (commissioneResult.totale * 0.3)
     }
-  })
+  }).filter(Boolean)
 
-  // Ordina per score decrescente
-  evaluatedOffers.sort((a, b) => b.score - a.score)
+  if (valutate.length === 0) return null
 
-  return evaluatedOffers[0]
+  valutate.sort((a, b) => b.score - a.score)
+  return valutate[0]
 }
 
 /**
- * Verifica se l'offerta attuale è già ottima (risparmio < soglia)
+ * Verifica se l'offerta attuale è già ottima
+ * Soglia: risparmio < €50/anno O < 5%
+ *
+ * @param {object} savings - Risultato di calculateSavings
+ * @param {number} threshold - Soglia minima risparmio in €
+ * @returns {boolean}
  */
 export const isCurrentOfferGood = (savings, threshold = 50) => {
+  if (!savings) return true
   return savings.risparmio_annuo < threshold || savings.risparmio_percentuale < 5
 }
 
@@ -134,63 +271,4 @@ export const formatCurrency = (value) => {
  */
 export const formatPercentage = (value) => {
   return `${(value || 0).toFixed(1)}%`
-}
-
-/**
- * Valida i dati di consumo
- */
-export const validateConsumption = (consumption) => {
-  const errors = []
-
-  if (consumption.tipo_fornitura === 'luce' || consumption.tipo_fornitura === 'dual') {
-    if (!consumption.consumo_annuo_kwh || consumption.consumo_annuo_kwh <= 0) {
-      errors.push('Consumo annuo luce non valido')
-    }
-    if (!consumption.potenza_contrattuale || consumption.potenza_contrattuale <= 0) {
-      errors.push('Potenza contrattuale non valida')
-    }
-  }
-
-  if (consumption.tipo_fornitura === 'gas' || consumption.tipo_fornitura === 'dual') {
-    if (!consumption.consumo_annuo_smc || consumption.consumo_annuo_smc <= 0) {
-      errors.push('Consumo annuo gas non valido')
-    }
-  }
-
-  if (!consumption.spesa_mensile_attuale || consumption.spesa_mensile_attuale <= 0) {
-    errors.push('Spesa mensile non valida')
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors
-  }
-}
-
-/**
- * Genera stima consumo basato su spesa (fallback)
- */
-export const estimateConsumptionFromCost = (monthlyCost, serviceType) => {
-  const avgPriceKwh = 0.25 // €/kWh medio
-  const avgPriceSmc = 1.00 // €/Smc medio
-  const avgFixedCost = 20 // € fissi mensili medi
-
-  const variableCost = monthlyCost - avgFixedCost
-  
-  if (serviceType === 'luce') {
-    return {
-      consumo_annuo_kwh: Math.round((variableCost / avgPriceKwh) * 12),
-      consumo_annuo_smc: null
-    }
-  } else if (serviceType === 'gas') {
-    return {
-      consumo_annuo_kwh: null,
-      consumo_annuo_smc: Math.round((variableCost / avgPriceSmc) * 12)
-    }
-  } else { // dual
-    return {
-      consumo_annuo_kwh: Math.round((variableCost * 0.6 / avgPriceKwh) * 12),
-      consumo_annuo_smc: Math.round((variableCost * 0.4 / avgPriceSmc) * 12)
-    }
-  }
 }
