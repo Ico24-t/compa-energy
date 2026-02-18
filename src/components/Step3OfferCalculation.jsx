@@ -290,9 +290,6 @@ const Step3OfferCalculation = () => {
         <h3 className="text-lg font-bold text-slate-900 mb-4">
           Per proseguire, inserisci il tuo numero
         </h3>
-        <p className="text-sm text-slate-600 mb-4">
-          Ti contatteremo per finalizzare l'offerta e rispondere alle tue domande
-        </p>
         <div className="relative">
           <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
           <input
