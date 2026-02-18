@@ -14,7 +14,7 @@ const Header = () => {
               <Zap className="w-6 h-6 text-white" />
             </div>
             <span className="text-xl font-display font-bold text-slate-900">
-              Comparatore Energia
+              eUtenti - Energia
             </span>
           </Link>
 
