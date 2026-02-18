@@ -1,183 +1,132 @@
 import emailjs from 'emailjs-com'
 
-const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID
-const customerTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID_CLIENTE
-const operatorTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID_AZIENDA
-const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID
+const TEMPLATE_CLIENTE = import.meta.env.VITE_EMAILJS_TEMPLATE_ID_CLIENTE
+const TEMPLATE_AZIENDA = import.meta.env.VITE_EMAILJS_TEMPLATE_ID_AZIENDA
+const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
 
-// Inizializza EmailJS
-emailjs.init(publicKey)
+// Inizializza EmailJS una sola volta
+emailjs.init(PUBLIC_KEY)
 
 /**
- * Invia email al cliente con l'offerta
+ * Formatta un importo in euro
+ */
+const eur = (val) =>
+  new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(val || 0)
+
+/**
+ * Invia email al CLIENTE
+ * Assicurarsi che nel template EmailJS siano presenti le variabili:
+ *   {{to_name}}, {{to_email}}, {{codice_pratica}},
+ *   {{fornitore_nome}}, {{nome_offerta}}, {{descrizione_offerta}},
+ *   {{risparmio_annuo}}, {{risparmio_mensile}}, {{risparmio_percentuale}},
+ *   {{spesa_attuale_annua}}, {{spesa_nuova_annua}},
+ *   {{spesa_attuale_mensile}}, {{spesa_nuova_mensile}},
+ *   {{numero_persone}}, {{tipo_fornitura}},
+ *   {{operatore_telefono}}, {{operatore_email}}
  */
 export const sendCustomerEmail = async (data) => {
-  try {
-    const offerta = data.offerta_selezionata || {}
-    const calcolo = data.calcolo_risparmio || {}
-    
-    const templateParams = {
-      // Email destinatario - FONDAMENTALE!
-      to_email: data.email,
-      
-      // Subject
-      provider_name: offerta.fornitori?.nome || data.fornitore_nome || '',
-      savings_annual: calcolo.risparmio_annuo?.toFixed(2) || '0',
-      
-      // Saluto
-      to_name: data.nome || 'Cliente',
-      
-      // Risparmio
-      risparmio_annuo: `€ ${calcolo.risparmio_annuo?.toFixed(2) || '0'}`,
-      risparmio_percentuale: calcolo.risparmio_percentuale?.toFixed(1) || '0',
-      risparmio_mensile: `€ ${(calcolo.risparmio_annuo / 12)?.toFixed(2) || '0'}`,
-      
-      // Dettagli Offerta
-      fornitore_nome: offerta.fornitori?.nome || data.fornitore_nome || '',
-      nome_offerta: offerta.nome_offerta || '',
-      tipo_fornitura: data.tipo_fornitura === 'dual' ? 'Luce + Gas' : 
-                      data.tipo_fornitura === 'luce' ? 'Luce' : 'Gas',
-      
-      // Confronto Spese
-      spesa_attuale_mensile: `€ ${data.spesa_mensile_attuale || '0'}`,
-      spesa_attuale_annua: `€ ${calcolo.spesa_annua_attuale?.toFixed(2) || '0'}`,
-      spesa_nuova_mensile: `€ ${(calcolo.spesa_annua_offerta / 12)?.toFixed(2) || '0'}`,
-      spesa_nuova_annua: `€ ${calcolo.spesa_annua_offerta?.toFixed(2) || '0'}`,
-      
-      // Tariffe
-      prezzo_kwh: offerta.prezzo_kwh ? `€ ${offerta.prezzo_kwh.toFixed(4)}/kWh` : 'N/A',
-      prezzo_smc: offerta.prezzo_smc ? `€ ${offerta.prezzo_smc.toFixed(4)}/Smc` : 'N/A',
-      quota_fissa_luce: offerta.quota_fissa_luce_mensile ? `€ ${offerta.quota_fissa_luce_mensile.toFixed(2)}/mese` : 'N/A',
-      quota_fissa_gas: offerta.quota_fissa_gas_mensile ? `€ ${offerta.quota_fissa_gas_mensile.toFixed(2)}/mese` : 'N/A',
-      
-      // Vantaggi
-      green_energy: offerta.green_energy ? 'Energia 100% verde' : 'Energia tradizionale',
-      digitale: offerta.digitale ? 'Gestione digitale con app' : 'Gestione tradizionale',
-      durata_contratto: offerta.durata_mesi ? `${offerta.durata_mesi} mesi` : 'Non specificato',
-      bonus_attivazione: offerta.bonus_attivazione ? `€ ${offerta.bonus_attivazione.toFixed(2)}` : 'Nessun bonus',
-      
-      // Dati Cliente
-      indirizzo_fornitura: data.indirizzo_fornitura || 'Non fornito',
-      citta: data.citta ? `${data.citta} (${data.provincia || ''})` : 'Non fornito',
-      codice_pratica: data.codice_univoco || '',
-      
-      // Date
-      data_richiesta: new Date().toLocaleDateString('it-IT'),
-      anno_corrente: new Date().getFullYear()
-    }
+  const templateParams = {
+    to_name: `${data.nome || ''} ${data.cognome || ''}`.trim() || 'Cliente',
+    to_email: data.email,
+    codice_pratica: data.codice_univoco,
 
-    const response = await emailjs.send(
-      serviceId,
-      customerTemplateId,
-      templateParams
-    )
+    // Offerta
+    fornitore_nome: data.fornitore_nome,
+    nome_offerta: data.nome_offerta,
+    descrizione_offerta: data.descrizione_offerta,
+    tipo_fornitura: data.tipo_fornitura?.toUpperCase() || '',
+    numero_persone: data.num_persone || '',
 
-    console.log('✅ Email cliente inviata con successo:', response)
-    return { success: true, response }
-  } catch (error) {
-    console.error('❌ Errore invio email cliente:', error)
-    return { success: false, error: error.message }
+    // Confronto spese - formato leggibile
+    spesa_attuale_mensile: eur(data.spesa_mensile_attuale_calc),
+    spesa_attuale_annua: eur(data.spesa_annua_attuale),
+    spesa_nuova_mensile: eur(data.spesa_mensile_offerta),
+    spesa_nuova_annua: eur(data.spesa_annua_offerta),
+
+    // Risparmio
+    risparmio_annuo: eur(data.risparmio_annuo),
+    risparmio_mensile: eur(data.risparmio_mensile),
+    risparmio_percentuale: `${(data.risparmio_percentuale || 0).toFixed(1)}%`,
+
+    // Contatti operatore
+    operatore_telefono: import.meta.env.VITE_OPERATOR_PHONE,
+    operatore_email: import.meta.env.VITE_OPERATOR_EMAIL
   }
+
+  return emailjs.send(SERVICE_ID, TEMPLATE_CLIENTE, templateParams, PUBLIC_KEY)
 }
 
 /**
- * Invia email all'operatore con i dati del lead
+ * Invia email all'OPERATORE/AZIENDA
+ * Assicurarsi che nel template EmailJS siano presenti le variabili:
+ *   {{codice_pratica}}, {{cliente_nome}}, {{cliente_email}}, {{cliente_telefono}},
+ *   {{tipo_cliente}}, {{tipo_fornitura}}, {{numero_persone}},
+ *   {{spesa_mensile_attuale}}, {{spesa_annua_attuale}},
+ *   {{fornitore_nome}}, {{nome_offerta}},
+ *   {{risparmio_annuo}}, {{risparmio_percentuale}},
+ *   {{spesa_annua_offerta}}, {{commissione_totale}},
+ *   {{indirizzo_fornitura}}, {{cap}}, {{citta}}, {{provincia}},
+ *   {{codice_pod}}, {{codice_pdr}},
+ *   {{fornitore_attuale}}, {{note_cliente}}
  */
 export const sendOperatorEmail = async (data) => {
-  try {
-    const offerta = data.offerta_selezionata || {}
-    const calcolo = data.calcolo_risparmio || {}
-    const now = new Date()
-    
-    const templateParams = {
-      // Subject
-      lead_code: data.codice_univoco || '',
-      
-      // Codice Pratica
-      codice_pratica: data.codice_univoco || '',
-      data_richiesta: now.toLocaleDateString('it-IT'),
-      ora_richiesta: now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
-      
-      // Dati Cliente
-      nome_completo: `${data.nome || ''} ${data.cognome || ''}`.trim() || 'Non fornito',
-      email_cliente: data.email || '',
-      telefono_cliente: data.telefono || 'Non fornito',
-      codice_fiscale: data.codice_fiscale || 'Non fornito',
-      indirizzo_completo: data.indirizzo_fornitura 
-        ? `${data.indirizzo_fornitura}, ${data.cap || ''} ${data.citta || ''} (${data.provincia || ''})`
-        : 'Non fornito',
-      
-      // Offerta Proposta
-      fornitore: offerta.fornitori?.nome || data.fornitore_nome || 'Non specificato',
-      nome_offerta: offerta.nome_offerta || 'Non specificato',
-      tipo_fornitura: data.tipo_fornitura === 'dual' ? 'Luce + Gas' : 
-                      data.tipo_fornitura === 'luce' ? 'Luce' : 'Gas',
-      
-      // Risparmio
-      risparmio_annuo: `€ ${calcolo.risparmio_annuo?.toFixed(2) || '0'}`,
-      risparmio_percentuale: `${calcolo.risparmio_percentuale?.toFixed(1) || '0'}%`,
-      
-      // Commissione
-      commissione_prevista: calcolo.tua_commissione 
-        ? `€ ${calcolo.tua_commissione.toFixed(2)}` 
-        : 'Da calcolare',
-      
-      // Dati Tecnici
-      codice_pod: data.codice_pod || 'Non fornito',
-      codice_pdr: data.codice_pdr || 'Non fornito',
-      fornitore_attuale: data.fornitore_attuale || 'Non specificato',
-      potenza_contrattuale: data.potenza_contrattuale ? `${data.potenza_contrattuale} kW` : 'Non fornito',
-      spesa_attuale: calcolo.spesa_annua_attuale 
-        ? `€ ${calcolo.spesa_annua_attuale.toFixed(2)}/anno (€ ${data.spesa_mensile_attuale || 0}/mese)`
-        : 'Non fornito',
-      spesa_nuova: calcolo.spesa_annua_offerta 
-        ? `€ ${calcolo.spesa_annua_offerta.toFixed(2)}/anno (€ ${(calcolo.spesa_annua_offerta / 12).toFixed(2)}/mese)`
-        : 'Non calcolato',
-      
-      // Note
-      note_cliente: data.note_cliente || 'Nessuna nota aggiuntiva',
-      
-      // Link e IDs
-      link_pannello: import.meta.env.VITE_APP_URL 
-        ? `${import.meta.env.VITE_APP_URL}/admin/leads/${data.codice_univoco || ''}`
-        : '#',
-      lead_id: data.leadId || 'N/A',
-      pre_contratto_id: data.preContrattoId || 'N/A'
-    }
+  const templateParams = {
+    codice_pratica: data.codice_univoco,
 
-    const response = await emailjs.send(
-      serviceId,
-      operatorTemplateId,
-      templateParams
-    )
+    // Cliente
+    cliente_nome: `${data.nome || ''} ${data.cognome || ''}`.trim(),
+    cliente_email: data.email,
+    cliente_telefono: data.telefono,
+    tipo_cliente: data.tipo_cliente?.toUpperCase() || 'PRIVATO',
+    tipo_fornitura: data.tipo_fornitura?.toUpperCase() || '',
+    numero_persone: data.num_persone || '',
 
-    console.log('✅ Email operatore inviata con successo:', response)
-    return { success: true, response }
-  } catch (error) {
-    console.error('❌ Errore invio email operatore:', error)
-    return { success: false, error: error.message }
+    // Spesa attuale
+    spesa_mensile_attuale: eur(data.spesa_mensile_attuale_calc),
+    spesa_annua_attuale: eur(data.spesa_annua_attuale),
+
+    // Offerta proposta
+    fornitore_nome: data.fornitore_nome,
+    nome_offerta: data.nome_offerta,
+    spesa_annua_offerta: eur(data.spesa_annua_offerta),
+    risparmio_annuo: eur(data.risparmio_annuo),
+    risparmio_percentuale: `${(data.risparmio_percentuale || 0).toFixed(1)}%`,
+
+    // Commissione operatore
+    commissione_totale: eur(data.tua_commissione),
+
+    // Anagrafica e fornitura
+    indirizzo_fornitura: data.indirizzo_fornitura || '',
+    cap: data.cap || '',
+    citta: data.citta || '',
+    provincia: data.provincia || '',
+    codice_pod: data.codice_pod || 'Non fornito',
+    codice_pdr: data.codice_pdr || 'Non fornito',
+    fornitore_attuale: data.fornitore_attuale || 'Non specificato',
+    note_cliente: data.note_cliente || 'Nessuna nota'
   }
+
+  return emailjs.send(SERVICE_ID, TEMPLATE_AZIENDA, templateParams, PUBLIC_KEY)
 }
 
 /**
- * Invia entrambe le email (cliente + operatore)
+ * Invia entrambe le email in parallelo
  */
 export const sendBothEmails = async (data) => {
-  console.log('📧 Inizio invio email...')
-  
-  const customerResult = await sendCustomerEmail(data)
-  const operatorResult = await sendOperatorEmail(data)
+  const results = await Promise.allSettled([
+    sendCustomerEmail(data),
+    sendOperatorEmail(data)
+  ])
 
-  const success = customerResult.success && operatorResult.success
-  
-  console.log('📊 Risultato invio:', {
-    cliente: customerResult.success ? '✅' : '❌',
-    operatore: operatorResult.success ? '✅' : '❌'
-  })
+  const errors = results
+    .filter(r => r.status === 'rejected')
+    .map(r => r.reason?.text || r.reason?.message || 'Errore sconosciuto')
 
-  return {
-    success,
-    customerEmail: customerResult,
-    operatorEmail: operatorResult
+  if (errors.length > 0) {
+    console.error('Errori invio email:', errors)
+    // Non blocchiamo il flusso se una email fallisce, logghiamo solo
   }
+
+  return results
 }
