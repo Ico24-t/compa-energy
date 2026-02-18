@@ -312,7 +312,7 @@ const Step3OfferCalculation = () => {
       </div>
 
       <button onClick={handleContinue} className="btn-primary w-full">
-        Sono interessato, prosegui
+        Interessato? Prosegui
       </button>
     </motion.div>
   )
