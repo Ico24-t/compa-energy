@@ -78,7 +78,7 @@ const Step6Confirmation = () => {
         </motion.div>
 
         <h1 className="text-3xl md:text-4xl font-display font-bold text-slate-900 mb-3">
-          Richiesta Inviata! 🎉
+          Richiesta Inviata! 
         </h1>
         <p className="text-lg text-slate-600 mb-8">
           La tua richiesta è stata inviata con successo
