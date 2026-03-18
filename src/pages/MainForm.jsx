@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
-import { RefreshCw, ClipboardList, FileImage, ChevronRight, Zap } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { RefreshCw, FileImage, ClipboardList, ChevronRight, Zap } from 'lucide-react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from '../contexts/FormContext'
 import ProgressSteps from '../components/ProgressSteps'
@@ -11,97 +11,78 @@ import Step4OfferDetails from '../components/Step4OfferDetails'
 import Step5PersonalData from '../components/Step5PersonalData'
 import Step6Confirmation from '../components/Step6Confirmation'
 
+// Opzioni scelta percorso — stesso stile di Step1ClientType
+const scelte = [
+  {
+    id: 'bolletta',
+    label: 'Carica bolletta',
+    icon: FileImage,
+    description: 'Automatico e veloce',
+    color: 'from-blue-500 to-blue-600',
+    badge: '⚡ Consigliato'
+  },
+  {
+    id: 'manuale',
+    label: 'Compila i campi',
+    icon: ClipboardList,
+    description: 'Guida passo passo',
+    color: 'from-purple-500 to-purple-600',
+    badge: null
+  }
+]
+
 // ── Step 0: scelta percorso ───────────────────────────────────────────────────
 const Step0Scelta = ({ onScegliManuale }) => {
   const navigate = useNavigate()
 
+  const handleScelta = (id) => {
+    if (id === 'bolletta') navigate('/bolletta')
+    else onScegliManuale()
+  }
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      className="container mx-auto max-w-3xl px-4 py-8"
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+      className="w-full max-w-4xl mx-auto px-4"
     >
-      {/* Header */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-200">
-          <Zap className="w-7 h-7 text-white" />
-        </div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-3">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl md:text-4xl font-display font-bold text-slate-900 mb-3">
           Trova la tua offerta migliore
         </h1>
-        <p className="text-slate-500 text-lg">
-          Come preferisci procedere?
-        </p>
+        <p className="text-lg text-slate-600">Come preferisci procedere?</p>
       </div>
 
-      {/* Card scelta */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-        {/* Opzione A: carica bolletta */}
-        <motion.button
-          whileHover={{ y: -4, shadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => navigate('/bolletta')}
-          className="group relative bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-7 text-left shadow-xl shadow-blue-200 overflow-hidden"
-        >
-          {/* Decorazione sfondo */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
-          <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-6 -translate-x-6" />
-
-          <div className="relative">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-5">
-              <FileImage className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="text-xl font-bold text-white mb-2">
-              Carica la bolletta
-            </h2>
-            <p className="text-blue-100 text-sm leading-relaxed mb-5">
-              Scatta una foto o carica il PDF della tua bolletta. Estraiamo i dati automaticamente e calcoliamo il risparmio in pochi secondi.
-            </p>
-            <div className="flex items-center gap-2 text-white font-semibold text-sm">
-              <span>⚡ Il più veloce</span>
-              <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">Consigliato</span>
-            </div>
-            <div className="flex items-center gap-1.5 mt-4 text-white/80 text-xs font-medium group-hover:text-white transition-colors">
-              Inizia subito <ChevronRight className="w-4 h-4" />
-            </div>
-          </div>
-        </motion.button>
-
-        {/* Opzione B: compila manualmente */}
-        <motion.button
-          whileHover={{ y: -4 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={onScegliManuale}
-          className="group bg-white rounded-2xl p-7 text-left shadow-sm border border-slate-200 hover:border-blue-200 hover:shadow-lg transition-all overflow-hidden relative"
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -translate-y-8 translate-x-8" />
-
-          <div className="relative">
-            <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-5 group-hover:bg-blue-50 transition-colors">
-              <ClipboardList className="w-6 h-6 text-slate-600 group-hover:text-blue-600 transition-colors" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900 mb-2">
-              Compila i campi
-            </h2>
-            <p className="text-slate-500 text-sm leading-relaxed mb-5">
-              Inserisci manualmente i tuoi consumi e i dati della fornitura. Ideale se non hai la bolletta a portata di mano.
-            </p>
-            <div className="flex items-center gap-2 text-slate-500 text-sm">
-              <span>📋 Compilazione guidata</span>
-            </div>
-            <div className="flex items-center gap-1.5 mt-4 text-slate-400 text-xs font-medium group-hover:text-blue-600 transition-colors">
-              Procedi <ChevronRight className="w-4 h-4" />
-            </div>
-          </div>
-        </motion.button>
+      {/* Stessa griglia di Step1ClientType: 2 colonne affiancate anche su mobile */}
+      <div className="grid grid-cols-2 gap-3 md:gap-6 max-w-lg mx-auto">
+        {scelte.map((s, i) => {
+          const Icon = s.icon
+          return (
+            <motion.button
+              key={s.id}
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              onClick={() => handleScelta(s.id)}
+              className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 transform py-5 px-2 md:py-10 md:px-6"
+            >
+              <div className={`absolute inset-0 bg-gradient-to-br ${s.color}`} />
+              <div className="relative text-white">
+                <Icon className="w-8 h-8 md:w-16 md:h-16 mx-auto mb-2 md:mb-4" strokeWidth={1.5} />
+                <h3 className="text-sm md:text-2xl font-bold mb-0.5 md:mb-2 leading-tight">{s.label}</h3>
+                <p className="text-xs md:text-base text-white/90 leading-tight">{s.description}</p>
+                {s.badge && (
+                  <span className="inline-block mt-1.5 bg-white/20 text-white text-[10px] md:text-xs font-semibold px-2 py-0.5 rounded-full">
+                    {s.badge}
+                  </span>
+                )}
+              </div>
+            </motion.button>
+          )
+        })}
       </div>
 
-      {/* Note privacy */}
-      <p className="text-center text-xs text-slate-400 mt-8">
-        🔒 I tuoi dati sono al sicuro. Non li condividiamo con terze parti senza il tuo consenso.
-      </p>
+      <div className="mt-6 text-center">
+        <p className="text-sm text-slate-500">🔒 I tuoi dati sono al sicuro e protetti</p>
+      </div>
     </motion.div>
   )
 }
@@ -109,7 +90,14 @@ const Step0Scelta = ({ onScegliManuale }) => {
 // ── MainForm ──────────────────────────────────────────────────────────────────
 const MainForm = () => {
   const { currentStep, resetForm } = useForm()
-  const [percorso, setPercorso] = useState(null) // null = step0, 'manuale' = form normale
+  const [percorso, setPercorso] = useState(null)
+  const location = useLocation()
+
+  // Quando si torna alla home (navigazione da logo o link), resetta tutto
+  useEffect(() => {
+    setPercorso(null)
+    resetForm()
+  }, [location.key])
 
   const handleReset = () => {
     setPercorso(null)
@@ -130,11 +118,7 @@ const MainForm = () => {
 
   // Step 0 — scelta percorso
   if (!percorso) {
-    return (
-      <Step0Scelta
-        onScegliManuale={() => setPercorso('manuale')}
-      />
-    )
+    return <Step0Scelta onScegliManuale={() => setPercorso('manuale')} />
   }
 
   // Percorso manuale — flusso esistente invariato
@@ -155,7 +139,7 @@ const MainForm = () => {
       </AnimatePresence>
 
       {currentStep > 1 && currentStep < 6 && (
-        <div className="text-center mt-8 pb-4 flex items-center justify-center gap-4">
+        <div className="text-center mt-8 pb-4">
           <button
             onClick={handleReset}
             className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-600 transition-colors"
